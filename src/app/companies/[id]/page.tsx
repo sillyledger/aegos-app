@@ -127,15 +127,18 @@ export default async function CompanyProfile({ params }: { params: { id: string 
           {[
             { label: "Founded", value: company.founding_year ?? "—" },
             { label: "Employees", value: company.employee_count ?? "—" },
-            { label: "Location", value: company.hq_city ? `${company.hq_city}, ${company.country ?? ""}`.trim().replace(/,$/, "") : (company.country ?? "—") },
+            {
+              label: "Location",
+              value: company.hq_city
+                ? `${company.hq_city}, ${company.country ?? ""}`.trim().replace(/,$/, "")
+                : (company.country ?? "—"),
+            },
             { label: "Aegos Score", value: "—" },
           ].map((stat) => (
             <div key={stat.label} style={{
-              padding: "20px 0",
+              padding: "20px 24px",
               borderBottom: "0.5px solid rgba(26,24,20,0.1)",
               borderRight: "0.5px solid rgba(26,24,20,0.1)",
-              paddingRight: "24px",
-              paddingLeft: "24px",
             }}>
               <div style={{
                 fontSize: "11px",
@@ -181,7 +184,6 @@ export default async function CompanyProfile({ params }: { params: { id: string 
           gridTemplateColumns: "1fr 1fr",
           gap: "56px",
         }}>
-          {/* Left — description */}
           <div>
             <p style={{
               fontSize: "14px",
@@ -193,17 +195,16 @@ export default async function CompanyProfile({ params }: { params: { id: string 
             </p>
           </div>
 
-          {/* Right — details */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             {[
               { label: "Website", value: company.website, isLink: true },
-              { label: "Country", value: company.country },
-              { label: "City", value: company.hq_city },
-              { label: "Sector", value: company.sector_primary },
-              { label: "Sub-sector", value: company.sector_secondary },
-              { label: "Type", value: company.ownership_type },
-              { label: "Founded", value: company.founding_year },
-              { label: "Employees", value: company.employee_count },
+              { label: "Country", value: company.country, isLink: false },
+              { label: "City", value: company.hq_city, isLink: false },
+              { label: "Sector", value: company.sector_primary, isLink: false },
+              { label: "Sub-sector", value: company.sector_secondary, isLink: false },
+              { label: "Type", value: company.ownership_type, isLink: false },
+              { label: "Founded", value: company.founding_year, isLink: false },
+              { label: "Employees", value: company.employee_count, isLink: false },
             ].map((row) => (
               <div key={row.label} style={{
                 display: "flex",
@@ -222,8 +223,8 @@ export default async function CompanyProfile({ params }: { params: { id: string 
                   {row.label.toUpperCase()}
                 </span>
                 {row.isLink && row.value ? (
-                  
-                    href={row.value.startsWith("http") ? row.value : `https://${row.value}`}
+                  <a
+                    href={String(row.value).startsWith("http") ? String(row.value) : `https://${row.value}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -233,7 +234,7 @@ export default async function CompanyProfile({ params }: { params: { id: string 
                       borderBottom: "0.5px solid rgba(26,24,20,0.25)",
                     }}
                   >
-                    {row.value.replace(/^https?:\/\//, "")}
+                    {String(row.value).replace(/^https?:\/\//, "")}
                   </a>
                 ) : (
                   <span style={{
@@ -256,7 +257,7 @@ export default async function CompanyProfile({ params }: { params: { id: string 
         marginBottom: "48px",
       }} />
 
-      {/* 04 — Funding History (placeholder) */}
+      {/* 04 — Funding History */}
       <div style={{ marginBottom: "48px" }}>
         <div style={{
           fontSize: "11px",
@@ -296,7 +297,7 @@ export default async function CompanyProfile({ params }: { params: { id: string 
         marginBottom: "48px",
       }} />
 
-      {/* 05 — Intel Signals (placeholder) */}
+      {/* 05 — Intel Signals */}
       <div style={{ marginBottom: "48px" }}>
         <div style={{
           fontSize: "11px",
@@ -336,7 +337,7 @@ export default async function CompanyProfile({ params }: { params: { id: string 
         marginBottom: "48px",
       }} />
 
-      {/* 06 — Related Companies (placeholder) */}
+      {/* 06 — Related Companies */}
       <div style={{ marginBottom: "48px" }}>
         <div style={{
           fontSize: "11px",
@@ -348,19 +349,13 @@ export default async function CompanyProfile({ params }: { params: { id: string 
           06 — RELATED COMPANIES
         </div>
         <div style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "0",
+          fontFamily: "var(--font-lora)",
+          fontSize: "13px",
+          color: "rgba(26,24,20,0.25)",
+          fontStyle: "italic",
+          padding: "12px 0",
         }}>
-          <div style={{
-            fontFamily: "var(--font-lora)",
-            fontSize: "13px",
-            color: "rgba(26,24,20,0.25)",
-            fontStyle: "italic",
-            padding: "12px 0",
-          }}>
-            Related companies in {company.sector_primary ?? "this sector"} will appear here
-          </div>
+          Related companies in {company.sector_primary ?? "this sector"} will appear here
         </div>
       </div>
 
