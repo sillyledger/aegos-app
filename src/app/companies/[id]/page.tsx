@@ -9,17 +9,7 @@ const supabase = createClient(
 );
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
-  const { data } = await supabase
-    .from("companies")
-    .select("company_name, sector_primary")
-    .eq("slug", params.id)
-    .single();
-
-  if (!data) return { title: "Company — Aegos Intel" };
-  return {
-    title: `${data.company_name} — Aegos Intel`,
-    description: `${data.company_name} company profile on Aegos Intel`,
-  };
+  return { title: "Company — Aegos Intel" };
 }
 
 export default async function CompanyProfile({ params }: { params: { id: string } }) {
