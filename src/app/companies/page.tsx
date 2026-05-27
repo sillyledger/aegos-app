@@ -8,7 +8,7 @@ const supabase = createClient(
 export default async function CompaniesPage() {
   const { data, error, count } = await supabase
     .from("companies")
-    .select("*", { count: "exact" })
+    .select("id, company_name, sector_primary, country, ownership_type", { count: "exact" })
     .limit(10);
 
   return (
@@ -30,9 +30,16 @@ export default async function CompaniesPage() {
         fontFamily: "var(--font-lora)",
         fontSize: "26px",
         fontWeight: 400,
-        marginBottom: "40px",
+        marginBottom: "8px",
       }}>
         Database check
+      </div>
+      <div style={{
+        fontSize: "13px",
+        color: "rgba(26,24,20,0.45)",
+        marginBottom: "40px",
+      }}>
+        {count ?? 0} companies in database
       </div>
 
       {error ? (
@@ -48,38 +55,42 @@ export default async function CompaniesPage() {
         </div>
       ) : (
         <div>
-          <div style={{
-            fontSize: "13px",
-            color: "rgba(26,24,20,0.55)",
-            marginBottom: "24px",
-          }}>
-            {count ?? 0} companies in database. Showing first 10:
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-            {data?.map((company, i) => (
-              <div key={company.id} style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "16px",
-                padding: "12px 0",
-                borderBottom: "0.5px solid rgba(26,24,20,0.08)",
-                fontSize: "13px",
+          {data?.map((company, i) => (
+            <div key={company.id} style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              padding: "12px 0",
+              borderBottom: "0.5px solid rgba(26,24,20,0.08)",
+              fontSize: "13px",
+            }}>
+              <span style={{
+                color: "rgba(26,24,20,0.28)",
+                minWidth: "24px",
+                fontSize: "11px",
+                fontFamily: "var(--font-mono)",
               }}>
-                <span style={{
-                  color: "rgba(26,24,20,0.28)",
-                  fontFamily: "var(--font-jakarta)",
-                  minWidth: "24px",
-                  fontSize: "11px",
-                }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span style={{ fontWeight: 500, flex: 1, fontFamily: "var(--font-mono)", fontSize: "11px" }}>
-  {JSON.stringify(company)}
-</span>
-              </div>
-            ))}
-          </div>
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span style={{ fontWeight: 500, flex: 1 }}>
+                {company.company_name}
+              </span>
+              <span style={{
+                fontSize: "11px",
+                color: "rgba(26,24,20,0.45)",
+              }}>
+                {company.sector_primary ?? "—"}
+              </span>
+              <span style={{
+                fontSize: "11px",
+                color: "rgba(26,24,20,0.35)",
+                minWidth: "80px",
+                textAlign: "right",
+              }}>
+                {company.country ?? "—"}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>
