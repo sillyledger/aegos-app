@@ -29,7 +29,11 @@ export default async function CompanyProfile({ params }: { params: { id: string 
     .eq("slug", params.id)
     .single();
 
-  if (error || !company) notFound();
+  if (error || !company) {
+    console.log("SLUG ATTEMPTED:", params.id);
+    console.log("ERROR:", JSON.stringify(error));
+    notFound();
+  }
 
   return (
     <div style={{
