@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { usePathname } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const navLinks = [
   { label: "OVERVIEW", href: "/" },
@@ -15,12 +20,10 @@ const navLinks = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   async function handleSignOut() {
-    const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   function isActive(href: string) {
@@ -37,7 +40,6 @@ export default function Sidebar() {
       display: "flex",
       flexDirection: "column",
       padding: "32px 24px",
-      gap: "0",
     }}>
       <div style={{
         fontFamily: "var(--font-lora)",
