@@ -8,7 +8,7 @@ const supabase = createClient(
 export default async function CompaniesPage() {
   const { data, error, count } = await supabase
     .from("companies")
-    .select("id, name, sector", { count: "exact" })
+    .select("*", { count: "exact" })
     .limit(10);
 
   return (
@@ -74,14 +74,9 @@ export default async function CompaniesPage() {
                 }}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span style={{ fontWeight: 500, flex: 1 }}>{company.name}</span>
-                <span style={{
-                  fontSize: "11px",
-                  color: "rgba(26,24,20,0.45)",
-                  letterSpacing: "0.04em",
-                }}>
-                  {company.sector ?? "—"}
-                </span>
+                <span style={{ fontWeight: 500, flex: 1, fontFamily: "var(--font-mono)", fontSize: "11px" }}>
+  {JSON.stringify(company)}
+</span>
               </div>
             ))}
           </div>
