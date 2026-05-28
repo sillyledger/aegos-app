@@ -223,11 +223,6 @@ export default function CompaniesPage() {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1814' }}>{company.company_name}</div>
-                  {company.company_description && (
-                    <div style={{ fontSize: 12, color: '#888780', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
-                      {company.company_description}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -247,14 +242,12 @@ export default function CompaniesPage() {
 
               {/* Country */}
               <span style={{ fontSize: 13, fontWeight: 500, color: company.country ? '#1A1814' : '#B4B2A9' }}>
-                {company.hq_city && company.country
-                  ? `${company.hq_city}, ${company.country}`
-                  : company.country || '—'}
+                {company.country || '—'}
               </span>
 
               {/* Founded */}
-              <span style={{ fontSize: 13, fontWeight: 500, color: company.founding_year ? '#1A1814' : '#B4B2A9' }}>
-                {company.founding_year || '—'}
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#1A1814' }}>
+                {company.founding_year || ''}
               </span>
             </div>
           )
