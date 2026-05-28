@@ -5,13 +5,16 @@ import { createClient } from '@supabase/supabase-js'
 
 type Company = {
   id: string
-  name: string
-  sector: string | null
+  company_name: string
+  sector_primary: string | null
   country: string | null
-  stage: string | null
-  description: string | null
-  aegos_score: number | null
-  deal_count: number | null
+  hq_city: string | null
+  ownership_type: string | null
+  company_description: string | null
+  founding_year: number | null
+  employee_count: string | null
+  website: string | null
+  slug: string | null
 }
 
 const SECTOR_FILTERS = ['All', 'AI & ML', 'Fintech', 'SaaS', 'Deep Tech', 'Climate', 'Health']
@@ -55,32 +58,6 @@ function getSectorStyle(sector: string | null) {
   return { bg: '#E6E4DE', text: '#5F5E5A' }
 }
 
-function ScoreChip({ score }: { score: number | null }) {
-  if (!score) return <span style={{ color: '#B4B2A9', fontSize: 13 }}>—</span>
-  const s =
-    score >= 70
-      ? { bg: '#C0DD97', text: '#27500A' }
-      : score >= 50
-      ? { bg: '#F4C0D1', text: '#72243E' }
-      : { bg: '#E6E4DE', text: '#5F5E5A' }
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 22, borderRadius: 3, fontSize: 12, fontWeight: 600, background: s.bg, color: s.text }}>
-      {score}
-    </span>
-  )
-}
-
-function ActivityBar({ value }: { value: number }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <div style={{ flex: 1, height: 3, background: '#E0DED8', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min(value, 100)}%`, background: 'linear-gradient(90deg, #639922, #97C459)', borderRadius: 2 }} />
-      </div>
-      <span style={{ fontSize: 12, color: '#5F5E5A', minWidth: 24, textAlign: 'right', fontWeight: 500 }}>{value}</span>
-    </div>
-  )
-}
-
 const PAGE_SIZE = 10
 
 export default function CompaniesPage() {
@@ -89,20 +66,19 @@ export default function CompaniesPage() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [activeSector, setActiveSector] = useState('All')
-  const [sortBy, setSortBy] = useState<'score' | 'name' | 'activity'>('score')
+  const [sortBy, setSortBy] = useState<'name' | 'country' | 'sector'>('name')
   const [page, setPage] = useState(1)
 
   useEffect(() => {
     async function load() {
-      // Create client inside the effect so it picks up the current session
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, sector, country, stage, description, aegos_score, deal_count')
-        .order('name', { ascending: true })
+        .select('id, company_name, sector_primary, country, hq_city, ownership_type, company_description, founding_year, employee_count, website, slug')
+        .order('company_name', { ascending: true })
 
       if (error) {
         setError(error.message)
@@ -120,19 +96,19 @@ export default function CompaniesPage() {
       const q = search.toLowerCase()
       list = list.filter(
         (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.sector || '').toLowerCase().includes(q) ||
+          c.company_name.toLowerCase().includes(q) ||
+          (c.sector_primary || '').toLowerCase().includes(q) ||
           (c.country || '').toLowerCase().includes(q)
       )
     }
     if (activeSector !== 'All') {
-      const q = activeSector.toLowerCase().replace(' & ml', '').replace('ai', 'ai')
-      list = list.filter((c) => (c.sector || '').toLowerCase().includes(q))
+      const q = activeSector.toLowerCase().replace(' & ml', '')
+      list = list.filter((c) => (c.sector_primary || '').toLowerCase().includes(q))
     }
     list.sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name)
-      if (sortBy === 'activity') return (b.deal_count ?? 0) - (a.deal_count ?? 0)
-      return (b.aegos_score ?? 0) - (a.aegos_score ?? 0)
+      if (sortBy === 'country') return (a.country || '').localeCompare(b.country || '')
+      if (sortBy === 'sector') return (a.sector_primary || '').localeCompare(b.sector_primary || '')
+      return a.company_name.localeCompare(b.company_name)
     })
     return list
   }, [companies, search, activeSector, sortBy])
@@ -167,7 +143,8 @@ export default function CompaniesPage() {
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888780" strokeWidth="2.5" style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888780" strokeWidth="2.5"
+            style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -183,9 +160,9 @@ export default function CompaniesPage() {
           onChange={(e) => { setSortBy(e.target.value as typeof sortBy); setPage(1) }}
           style={{ padding: '6px 10px', fontSize: 12, fontWeight: 500, border: '1px solid #C4C2BA', borderRadius: 5, background: '#F2F0EB', color: '#1A1814', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}
         >
-          <option value="score">Sort: Aegos Score</option>
           <option value="name">Sort: Name A–Z</option>
-          <option value="activity">Sort: Activity</option>
+          <option value="sector">Sort: Sector</option>
+          <option value="country">Sort: Country</option>
         </select>
       </div>
 
@@ -208,9 +185,9 @@ export default function CompaniesPage() {
       </div>
 
       {/* Column headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 100px 100px 110px 70px', gap: '0 16px', padding: '8px 0', borderBottom: '1.5px solid #C4C2BA' }}>
-        {[['Organization', false], ['Sector', false], ['Stage', false], ['Country', false], ['Activity', false], ['Score', true]].map(([col, center]) => (
-          <span key={col as string} style={{ ...labelStyle, textAlign: center ? 'center' : 'left' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 120px 120px 100px', gap: '0 16px', padding: '8px 0', borderBottom: '1.5px solid #C4C2BA' }}>
+        {[['Organization', false], ['Sector', false], ['Stage / Type', false], ['Country', false], ['Founded', false]].map(([col, center]) => (
+          <span key={col as string} style={{ ...labelStyle, textAlign: (center as boolean) ? 'center' : 'left' }}>
             {col}
           </span>
         ))}
@@ -220,39 +197,35 @@ export default function CompaniesPage() {
       {loading ? (
         <div style={{ padding: '3rem 0', textAlign: 'center', color: '#888780', fontSize: 14 }}>Loading companies…</div>
       ) : error ? (
-        <div style={{ padding: '3rem 0', textAlign: 'center', color: '#B4534B', fontSize: 14 }}>
+        <div style={{ padding: '3rem 0', textAlign: 'center', color: '#993C1D', fontSize: 14 }}>
           Could not load companies: {error}
         </div>
       ) : paginated.length === 0 ? (
         <div style={{ padding: '3rem 0', textAlign: 'center', color: '#888780', fontSize: 14 }}>No companies found.</div>
       ) : (
         paginated.map((company) => {
-          const logoColor = getLogoColor(company.name)
-          const sectorStyle = getSectorStyle(company.sector)
-          const activityVal = company.deal_count
-            ? Math.min(company.deal_count * 10, 100)
-            : company.aegos_score
-            ? Math.round(company.aegos_score * 0.85)
-            : 0
+          const logoColor = getLogoColor(company.company_name)
+          const sectorStyle = getSectorStyle(company.sector_primary)
+          const href = company.slug ? `/companies/${company.slug}` : `/companies/${company.id}`
 
           return (
             <div
               key={company.id}
-              onClick={() => window.location.href = `/companies/${company.id}`}
-              style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 100px 100px 110px 70px', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #DDD9D3', alignItems: 'center', cursor: 'pointer', transition: 'background 0.1s', borderRadius: 4 }}
+              onClick={() => window.location.href = href}
+              style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 120px 120px 100px', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #DDD9D3', alignItems: 'center', cursor: 'pointer', borderRadius: 4 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.6)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
             >
               {/* Company name + tagline */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 6, background: logoColor.bg, color: logoColor.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                  {company.name.charAt(0).toUpperCase()}
+                  {company.company_name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1814' }}>{company.name}</div>
-                  {company.description && (
-                    <div style={{ fontSize: 12, color: '#888780', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240 }}>
-                      {company.description}
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1814' }}>{company.company_name}</div>
+                  {company.company_description && (
+                    <div style={{ fontSize: 12, color: '#888780', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
+                      {company.company_description}
                     </div>
                   )}
                 </div>
@@ -260,24 +233,29 @@ export default function CompaniesPage() {
 
               {/* Sector */}
               <span>
-                {company.sector ? (
+                {company.sector_primary ? (
                   <span style={{ display: 'inline-block', padding: '3px 8px', fontSize: 11, fontWeight: 600, borderRadius: 3, background: sectorStyle.bg, color: sectorStyle.text, whiteSpace: 'nowrap' }}>
-                    {company.sector}
+                    {company.sector_primary}
                   </span>
                 ) : <span style={{ color: '#B4B2A9', fontSize: 13 }}>—</span>}
               </span>
 
-              {/* Stage */}
-              <span style={{ fontSize: 13, fontWeight: 500, color: company.stage ? '#1A1814' : '#B4B2A9' }}>{company.stage || '—'}</span>
+              {/* Ownership type */}
+              <span style={{ fontSize: 13, fontWeight: 500, color: company.ownership_type ? '#1A1814' : '#B4B2A9' }}>
+                {company.ownership_type || '—'}
+              </span>
 
               {/* Country */}
-              <span style={{ fontSize: 13, fontWeight: 500, color: company.country ? '#1A1814' : '#B4B2A9' }}>{company.country || '—'}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: company.country ? '#1A1814' : '#B4B2A9' }}>
+                {company.hq_city && company.country
+                  ? `${company.hq_city}, ${company.country}`
+                  : company.country || '—'}
+              </span>
 
-              {/* Activity */}
-              <ActivityBar value={activityVal} />
-
-              {/* Score */}
-              <div style={{ textAlign: 'center' }}><ScoreChip score={company.aegos_score} /></div>
+              {/* Founded */}
+              <span style={{ fontSize: 13, fontWeight: 500, color: company.founding_year ? '#1A1814' : '#B4B2A9' }}>
+                {company.founding_year || '—'}
+              </span>
             </div>
           )
         })
