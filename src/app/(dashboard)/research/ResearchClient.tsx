@@ -302,10 +302,10 @@ export default function ResearchClient() {
             ))}
           </div>
 
-          {/* Funding rounds table */}
+          {/* Recent funding rounds table */}
           {result.funding_rounds && result.funding_rounds.length > 0 && (
             <div style={{ marginBottom: 32 }}>
-              <div style={{ ...labelStyle, marginBottom: 14 }}>Funding rounds</div>
+              <div style={{ ...labelStyle, marginBottom: 14 }}>Recent Funding rounds</div>
               <div style={{ borderTop: '1.5px solid #C4C2BA' }}>
                 {/* Table header */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr', gap: '0 16px', padding: '8px 0', borderBottom: '0.5px solid #D8D6D0' }}>
