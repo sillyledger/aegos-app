@@ -100,6 +100,7 @@ export default function ResearchClient() {
   const [reportSent, setReportSent] = useState(false);
   const [reportNote, setReportNote] = useState('');
   const [related, setRelated] = useState<RelatedCompany[]>([]);
+  const [existingMatch, setExistingMatch] = useState<{ id: string; company_name: string; slug: string | null } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch related companies when result sector changes
@@ -123,17 +124,35 @@ export default function ResearchClient() {
       });
   }, [result?.sector_primary, result?.company_name]);
 
-  async function handleParse(e?: React.FormEvent) {
+  async function handleParse(e?: React.FormEvent, force = false) {
     if (e) e.preventDefault();
     const q = input.trim();
     if (!q) return;
-    setLoading(true);
     setResult(null);
     setError(null);
     setSaved(false);
     setReportSent(false);
     setRelated([]);
+    setExistingMatch(null);
 
+    // Check if company already exists in DB (unless user clicked "Parse anyway")
+    if (!force) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data } = await supabase
+        .from('companies')
+        .select('id, company_name, slug')
+        .ilike('company_name', q)
+        .limit(1);
+      if (data && data.length > 0) {
+        setExistingMatch(data[0]);
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
       const res = await fetch('/api/parse', {
         method: 'POST',
@@ -208,7 +227,7 @@ export default function ResearchClient() {
             />
             {input && (
               <button type="button" onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }} onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); setExistingMatch(null); }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             )}
@@ -234,6 +253,42 @@ export default function ResearchClient() {
 
       {/* Divider */}
       <div style={{ height: '0.5px', background: '#D8D6D0', marginBottom: 32 }} />
+
+      {/* Existing match notice */}
+      {existingMatch && !loading && !result && (
+        <div style={{ maxWidth: 800, padding: '24px 28px', background: '#F8F7F4', border: '1px solid #D8D6D0', borderRadius: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 9, background: '#1A1814', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-lora), serif', fontSize: 16, color: '#fff', flexShrink: 0 }}>
+              {existingMatch.company_name.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#1A1814', marginBottom: 4, fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                {existingMatch.company_name} is already in our database
+              </p>
+              <p style={{ fontSize: 13, color: '#7A7870', fontFamily: 'var(--font-jakarta), sans-serif', lineHeight: 1.5 }}>
+                We already have a profile for this company. You can view the existing profile or parse new data anyway.
+              </p>
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button
+                  onClick={() => { window.location.href = existingMatch.slug ? `/companies/${existingMatch.slug}` : `/companies/${existingMatch.id}`; }}
+                  style={{ height: 38, padding: '0 18px', background: '#1A1814', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  View profile ↗
+                </button>
+                <button
+                  onClick={() => handleParse(undefined, true)}
+                  style={{ height: 38, padding: '0 18px', background: 'transparent', color: '#5A5852', border: '0.5px solid #C8C6C0', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  Parse anyway
+                </button>
+                <button
+                  onClick={() => setExistingMatch(null)}
+                  style={{ height: 38, padding: '0 18px', background: 'transparent', color: '#B0AEA8', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (
