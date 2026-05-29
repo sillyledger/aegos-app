@@ -163,7 +163,7 @@ export default function ResearchClient() {
             )}
           </div>
           <button type="submit" disabled={!input.trim() || loading}
-            style={{ height: 46, padding: '0 22px', background: input.trim() && !loading ? '#1A1814' : '#E8E6E0', color: input.trim() && !loading ? '#fff' : '#A0A09A', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: input.trim() && !loading ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+            style={{ height: 46, padding: '0 22px', background: input.trim() && !loading ? '#1A1814' : '#E8E6E0', color: input.trim() && !loading ? '#fff' : '#A0A09A', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: input.trim() && !loading ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M21 5h-4"/>
             </svg>
@@ -172,10 +172,10 @@ export default function ResearchClient() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, color: '#B0AEA8', fontFamily: 'var(--font-jakarta), sans-serif' }}>Try:</span>
+          <span style={{ fontSize: 12, color: '#B0AEA8', fontFamily: 'var(--font-jakarta), sans-serif' }}>Try:</span>
           {['stripe.com', 'Revolut', 'Deel', 'notion.so', 'Canva'].map(s => (
             <button key={s} type="button" onClick={() => quickFill(s)}
-              style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid #C8C6C0', background: 'transparent', color: '#7A7870', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+              style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, border: '1px solid #C8C6C0', background: 'transparent', color: '#7A7870', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
               {s}
             </button>
           ))}
@@ -188,7 +188,7 @@ export default function ResearchClient() {
       {/* Loading */}
       {loading && (
         <div style={{ paddingTop: 40, textAlign: 'center' }}>
-          <p style={{ fontSize: 13, color: '#9A9892', marginBottom: 16, fontFamily: 'var(--font-jakarta), sans-serif' }}>
+          <p style={{ fontSize: 15, color: '#9A9892', marginBottom: 16, fontFamily: 'var(--font-jakarta), sans-serif' }}>
             Parsing <strong style={{ color: '#1A1814' }}>{input}</strong>…
           </p>
           <div style={{ width: 160, height: 1.5, background: '#E8E6E0', borderRadius: 1, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
@@ -200,7 +200,7 @@ export default function ResearchClient() {
 
       {/* Error */}
       {error && !loading && (
-        <div style={{ padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 13, color: '#DC2626', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+        <div style={{ padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, fontSize: 15, color: '#DC2626', fontFamily: 'var(--font-jakarta), sans-serif' }}>
           {error}
         </div>
       )}
@@ -211,7 +211,7 @@ export default function ResearchClient() {
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ display: 'block', margin: '0 auto 14px' }}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
-          <p style={{ fontSize: 13, fontFamily: 'var(--font-jakarta), sans-serif' }}>Enter a company name or URL above to build an AI-parsed profile</p>
+          <p style={{ fontSize: 15, fontFamily: 'var(--font-jakarta), sans-serif' }}>Enter a company name or URL above to build an AI-parsed profile</p>
         </div>
       )}
 
@@ -220,7 +220,7 @@ export default function ResearchClient() {
         <div>
 
           {/* AI notice */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', marginBottom: 24, background: '#FEFCE8', border: '0.5px solid #E9E4A0', borderRadius: 8, fontSize: 12, color: '#78710A', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', marginBottom: 24, background: '#FEFCE8', border: '0.5px solid #E9E4A0', borderRadius: 8, fontSize: 13, color: '#78710A', fontFamily: 'var(--font-jakarta), sans-serif' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M21 5h-4"/></svg>
               The data parsed may be incomplete or imprecise.
@@ -229,7 +229,7 @@ export default function ResearchClient() {
               <span style={{ color: '#166534', fontWeight: 600, fontSize: 11 }}>✓ Report received, thanks</span>
             ) : (
               <button onClick={() => setReportOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#78710A', background: 'none', border: '0.5px solid #D4CC6A', borderRadius: 5, padding: '3px 10px', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', flexShrink: 0 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#78710A', background: 'none', border: '0.5px solid #D4CC6A', borderRadius: 5, padding: '3px 10px', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', flexShrink: 0 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                 Report inaccuracy
               </button>
@@ -242,10 +242,10 @@ export default function ResearchClient() {
               {initials(result.company_name)}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 24, fontWeight: 400, color: '#1A1814', marginBottom: 6 }}>
+              <h2 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 28, fontWeight: 400, color: '#1A1814', marginBottom: 6 }}>
                 {result.company_name || '—'}
               </h2>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: '#9A9892', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: '#9A9892', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                 {result.website && (
                   <a href={result.website} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#5A5852', textDecoration: 'none' }}>
@@ -267,14 +267,14 @@ export default function ResearchClient() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                {result.sector_primary && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#EEEDFE', color: '#4338CA', fontWeight: 500, fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.sector_primary}</span>}
-                {result.sector_secondary && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#F2F0EB', border: '0.5px solid #C8C6C0', color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.sector_secondary}</span>}
-                {result.stage && result.stage !== 'Unknown' && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#F0FDF4', color: '#166534', fontWeight: 500, fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.stage}</span>}
-                {result.ownership_type && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#F2F0EB', border: '0.5px solid #C8C6C0', color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.ownership_type}</span>}
+                {result.sector_primary && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#EEEDFE', color: '#4338CA', fontWeight: 500, fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.sector_primary}</span>}
+                {result.sector_secondary && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#F2F0EB', border: '0.5px solid #C8C6C0', color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.sector_secondary}</span>}
+                {result.stage && result.stage !== 'Unknown' && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#F0FDF4', color: '#166534', fontWeight: 500, fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.stage}</span>}
+                {result.ownership_type && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#F2F0EB', border: '0.5px solid #C8C6C0', color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.ownership_type}</span>}
               </div>
             </div>
             <button onClick={handleSave} disabled={saved || saving}
-              style={{ flexShrink: 0, height: 38, padding: '0 18px', background: saved ? '#F0FDF4' : '#1A1814', color: saved ? '#166534' : '#fff', border: saved ? '0.5px solid #BBF7D0' : 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: saved || saving ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-jakarta), sans-serif', whiteSpace: 'nowrap' }}>
+              style={{ flexShrink: 0, height: 38, padding: '0 18px', background: saved ? '#F0FDF4' : '#1A1814', color: saved ? '#166534' : '#fff', border: saved ? '0.5px solid #BBF7D0' : 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saved || saving ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-jakarta), sans-serif', whiteSpace: 'nowrap' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill={saved ? '#166534' : 'none'} stroke="currentColor" strokeWidth="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
               {saving ? 'Saving…' : saved ? 'Saved to watchlist' : 'Add to watchlist'}
             </button>
@@ -282,7 +282,7 @@ export default function ResearchClient() {
 
           {/* Description */}
           {result.company_description && (
-            <p style={{ fontSize: 13, color: '#3A3830', lineHeight: 1.7, paddingBottom: 24, borderBottom: '0.5px solid #D8D6D0', marginBottom: 24, fontFamily: 'var(--font-jakarta), sans-serif' }}>
+            <p style={{ fontSize: 15, color: '#3A3830', lineHeight: 1.7, paddingBottom: 24, borderBottom: '0.5px solid #D8D6D0', marginBottom: 24, fontFamily: 'var(--font-jakarta), sans-serif' }}>
               {result.company_description}
             </p>
           )}
@@ -297,15 +297,15 @@ export default function ResearchClient() {
             ].map(({ label, value }) => (
               <div key={label}>
                 <div style={{ ...labelStyle, marginBottom: 5 }}>{label}</div>
-                <div style={{ fontSize: 13, color: value ? '#1A1814' : '#C8C6C0', fontWeight: value ? 500 : 400, fontFamily: 'var(--font-jakarta), sans-serif' }}>{value || '—'}</div>
+                <div style={{ fontSize: 15, color: value ? '#1A1814' : '#C8C6C0', fontWeight: value ? 500 : 400, fontFamily: 'var(--font-jakarta), sans-serif' }}>{value || '—'}</div>
               </div>
             ))}
           </div>
 
-          {/* Recent funding rounds table */}
+          {/* Funding rounds table */}
           {result.funding_rounds && result.funding_rounds.length > 0 && (
             <div style={{ marginBottom: 32 }}>
-              <div style={{ ...labelStyle, marginBottom: 14 }}>Recent Funding rounds</div>
+              <div style={{ ...labelStyle, marginBottom: 14 }}>Funding rounds</div>
               <div style={{ borderTop: '1.5px solid #C4C2BA' }}>
                 {/* Table header */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr', gap: '0 16px', padding: '8px 0', borderBottom: '0.5px solid #D8D6D0' }}>
@@ -316,10 +316,10 @@ export default function ResearchClient() {
                 {/* Rows */}
                 {result.funding_rounds.map((r, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #E8E6E0', alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>{r.round || '—'}</span>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>{formatUSD(r.amount_usd)}</span>
-                    <span style={{ fontSize: 13, color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{formatRoundDate(r.date)}</span>
-                    <span style={{ fontSize: 13, color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{r.lead_investor || '—'}</span>
+                    <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>{r.round || '—'}</span>
+                    <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>{formatUSD(r.amount_usd)}</span>
+                    <span style={{ fontSize: 15, color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{formatRoundDate(r.date)}</span>
+                    <span style={{ fontSize: 15, color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{r.lead_investor || '—'}</span>
                   </div>
                 ))}
               </div>
@@ -328,11 +328,11 @@ export default function ResearchClient() {
 
           {/* AI confidence */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, borderTop: '0.5px solid #D8D6D0' }}>
-            <span style={{ fontSize: 11, color: '#9A9892', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>AI confidence</span>
+            <span style={{ fontSize: 12, color: '#9A9892', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>AI confidence</span>
             <div style={{ flex: 1, height: 2, background: '#E8E6E0', borderRadius: 1, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: '72%', background: '#639922', borderRadius: 1 }} />
             </div>
-            <span style={{ fontSize: 11, color: '#5A5852', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>72%</span>
+            <span style={{ fontSize: 12, color: '#5A5852', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>72%</span>
           </div>
         </div>
       )}
@@ -348,19 +348,19 @@ export default function ResearchClient() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </div>
-            <p style={{ fontSize: 13, color: '#7A7870', marginBottom: 16, lineHeight: 1.6, fontFamily: 'var(--font-jakarta), sans-serif' }}>
+            <p style={{ fontSize: 15, color: '#7A7870', marginBottom: 16, lineHeight: 1.6, fontFamily: 'var(--font-jakarta), sans-serif' }}>
               What&apos;s wrong with the <strong style={{ color: '#1A1814' }}>{result?.company_name}</strong> profile? This helps us improve the AI model.
             </p>
             <textarea value={reportNote} onChange={e => setReportNote(e.target.value)}
               placeholder="e.g. Wrong founding year, incorrect funding amount, missing sector…"
-              style={{ width: '100%', height: 100, padding: '10px 14px', border: '0.5px solid #D0CEC8', borderRadius: 8, fontSize: 13, color: '#1A1814', background: '#fff', fontFamily: 'var(--font-jakarta), sans-serif', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', height: 100, padding: '10px 14px', border: '0.5px solid #D0CEC8', borderRadius: 8, fontSize: 15, color: '#1A1814', background: '#fff', fontFamily: 'var(--font-jakarta), sans-serif', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
               <button onClick={() => setReportOpen(false)}
-                style={{ height: 38, padding: '0 16px', border: '0.5px solid #D0CEC8', borderRadius: 8, background: 'transparent', color: '#5A5852', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                style={{ height: 38, padding: '0 16px', border: '0.5px solid #D0CEC8', borderRadius: 8, background: 'transparent', color: '#5A5852', fontSize: 15, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                 Cancel
               </button>
               <button onClick={submitReport}
-                style={{ height: 38, padding: '0 16px', border: 'none', borderRadius: 8, background: '#1A1814', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                style={{ height: 38, padding: '0 16px', border: 'none', borderRadius: 8, background: '#1A1814', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                 Send report
               </button>
             </div>
