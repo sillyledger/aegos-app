@@ -3,8 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface FundingRound {
   round: string | null;
   amount_usd: number | null;
@@ -38,7 +36,11 @@ interface RelatedCompany {
   slug: string | null;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+interface ExistingMatch {
+  id: string;
+  company_name: string;
+  slug: string | null;
+}
 
 function formatUSD(n: number | null): string {
   if (!n) return '—';
@@ -87,8 +89,6 @@ const labelStyle: React.CSSProperties = {
   fontFamily: 'var(--font-jakarta), sans-serif',
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function ResearchClient() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,10 +100,9 @@ export default function ResearchClient() {
   const [reportSent, setReportSent] = useState(false);
   const [reportNote, setReportNote] = useState('');
   const [related, setRelated] = useState<RelatedCompany[]>([]);
-  const [existingMatch, setExistingMatch] = useState<{ id: string; company_name: string; slug: string | null } | null>(null);
+  const [existingMatch, setExistingMatch] = useState<ExistingMatch | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch related companies when result sector changes
   useEffect(() => {
     if (!result?.sector_primary) { setRelated([]); return; }
     const sector = result.sector_primary.toLowerCase();
@@ -124,6 +123,15 @@ export default function ResearchClient() {
       });
   }, [result?.sector_primary, result?.company_name]);
 
+  function clearAll() {
+    setInput('');
+    setResult(null);
+    setError(null);
+    setSaved(false);
+    setRelated([]);
+    setExistingMatch(null);
+  }
+
   async function handleParse(e?: React.FormEvent, force = false) {
     if (e) e.preventDefault();
     const q = input.trim();
@@ -135,7 +143,6 @@ export default function ResearchClient() {
     setRelated([]);
     setExistingMatch(null);
 
-    // Check if company already exists in DB (unless user clicked "Parse anyway")
     if (!force) {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -203,6 +210,7 @@ export default function ResearchClient() {
     setError(null);
     setSaved(false);
     setRelated([]);
+    setExistingMatch(null);
     inputRef.current?.focus();
   }
 
@@ -226,14 +234,20 @@ export default function ResearchClient() {
               style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: 15, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}
             />
             {input && (
-              <button type="button" onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); setExistingMatch(null); }}   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }}>   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg> </button>
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }} onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); setExistingMatch(null); }}>
+              <button
+                type="button"
+                onClick={clearAll}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }}
+              >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             )}
           </div>
-          <button type="submit" disabled={!input.trim() || loading}
-            style={{ height: 46, padding: '0 22px', background: input.trim() && !loading ? '#1A1814' : '#E8E6E0', color: input.trim() && !loading ? '#fff' : '#A0A09A', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: input.trim() && !loading ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+          <button
+            type="submit"
+            disabled={!input.trim() || loading}
+            style={{ height: 46, padding: '0 22px', background: input.trim() && !loading ? '#1A1814' : '#E8E6E0', color: input.trim() && !loading ? '#fff' : '#A0A09A', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: input.trim() && !loading ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M21 5h-4"/>
             </svg>
@@ -243,8 +257,12 @@ export default function ResearchClient() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: '#B0AEA8', fontFamily: 'var(--font-jakarta), sans-serif' }}>Try:</span>
           {['stripe.com', 'Revolut', 'Deel', 'notion.so', 'Canva'].map(s => (
-            <button key={s} type="button" onClick={() => quickFill(s)}
-              style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, border: '1px solid #C8C6C0', background: 'transparent', color: '#7A7870', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+            <button
+              key={s}
+              type="button"
+              onClick={() => quickFill(s)}
+              style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, border: '1px solid #C8C6C0', background: 'transparent', color: '#7A7870', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}
+            >
               {s}
             </button>
           ))}
@@ -271,17 +289,20 @@ export default function ResearchClient() {
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                 <button
                   onClick={() => { window.location.href = existingMatch.slug ? `/companies/${existingMatch.slug}` : `/companies/${existingMatch.id}`; }}
-                  style={{ height: 38, padding: '0 18px', background: '#1A1814', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  style={{ height: 38, padding: '0 18px', background: '#1A1814', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
                   View profile ↗
                 </button>
                 <button
                   onClick={() => handleParse(undefined, true)}
-                  style={{ height: 38, padding: '0 18px', background: 'transparent', color: '#5A5852', border: '0.5px solid #C8C6C0', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  style={{ height: 38, padding: '0 18px', background: 'transparent', color: '#5A5852', border: '0.5px solid #C8C6C0', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}
+                >
                   Parse anyway
                 </button>
                 <button
                   onClick={() => setExistingMatch(null)}
-                  style={{ height: 38, padding: '0 18px', background: 'transparent', color: '#B0AEA8', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  style={{ height: 38, padding: '0 18px', background: 'transparent', color: '#B0AEA8', border: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}
+                >
                   Cancel
                 </button>
               </div>
@@ -311,7 +332,7 @@ export default function ResearchClient() {
       )}
 
       {/* Empty state */}
-      {!loading && !result && !error && (
+      {!loading && !result && !error && !existingMatch && (
         <div style={{ textAlign: 'center', paddingTop: 48, color: '#C8C6C0' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ display: 'block', margin: '0 auto 14px' }}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
@@ -320,13 +341,12 @@ export default function ResearchClient() {
         </div>
       )}
 
-      {/* Two-column layout once result is ready */}
+      {/* Two-column layout */}
       {result && !loading && (
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 48, alignItems: 'start' }}>
 
-          {/* ── LEFT: Parsed profile ── */}
+          {/* LEFT: Parsed profile */}
           <div>
-            {/* AI notice */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', marginBottom: 24, background: '#FEFCE8', border: '0.5px solid #E9E4A0', borderRadius: 8, fontSize: 13, color: '#78710A', fontFamily: 'var(--font-jakarta), sans-serif' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4M21 5h-4"/></svg>
@@ -335,15 +355,16 @@ export default function ResearchClient() {
               {reportSent ? (
                 <span style={{ color: '#166534', fontWeight: 600, fontSize: 12 }}>✓ Report received, thanks</span>
               ) : (
-                <button onClick={() => setReportOpen(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#78710A', background: 'none', border: '0.5px solid #D4CC6A', borderRadius: 5, padding: '3px 10px', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', flexShrink: 0 }}>
+                <button
+                  onClick={() => setReportOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#78710A', background: 'none', border: '0.5px solid #D4CC6A', borderRadius: 5, padding: '3px 10px', cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif', flexShrink: 0 }}
+                >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                   Report inaccuracy
                 </button>
               )}
             </div>
 
-            {/* Company header */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, paddingBottom: 24, borderBottom: '0.5px solid #D8D6D0', marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, borderRadius: 10, flexShrink: 0, background: '#1A1814', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-lora), serif', fontSize: 18, color: '#fff' }}>
                 {initials(result.company_name)}
@@ -354,8 +375,7 @@ export default function ResearchClient() {
                 </h2>
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: '#9A9892', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                   {result.website && (
-                    <a href={result.website} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#5A5852', textDecoration: 'none' }}>
+                    <a href={result.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#5A5852', textDecoration: 'none' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                       {result.website.replace(/https?:\/\/(www\.)?/, '')}
                     </a>
@@ -380,21 +400,22 @@ export default function ResearchClient() {
                   {result.ownership_type && <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#F2F0EB', border: '0.5px solid #C8C6C0', color: '#5A5852', fontFamily: 'var(--font-jakarta), sans-serif' }}>{result.ownership_type}</span>}
                 </div>
               </div>
-              <button onClick={handleSave} disabled={saved || saving}
-                style={{ flexShrink: 0, height: 38, padding: '0 18px', background: saved ? '#F0FDF4' : '#1A1814', color: saved ? '#166534' : '#fff', border: saved ? '0.5px solid #BBF7D0' : 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saved || saving ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-jakarta), sans-serif', whiteSpace: 'nowrap' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill={saved ? '#166634' : 'none'} stroke="currentColor" strokeWidth="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+              <button
+                onClick={handleSave}
+                disabled={saved || saving}
+                style={{ flexShrink: 0, height: 38, padding: '0 18px', background: saved ? '#F0FDF4' : '#1A1814', color: saved ? '#166534' : '#fff', border: saved ? '0.5px solid #BBF7D0' : 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saved || saving ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-jakarta), sans-serif', whiteSpace: 'nowrap' }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill={saved ? '#166534' : 'none'} stroke="currentColor" strokeWidth="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
                 {saving ? 'Saving…' : saved ? 'Saved to watchlist' : 'Add to watchlist'}
               </button>
             </div>
 
-            {/* Description */}
             {result.company_description && (
               <p style={{ fontSize: 15, color: '#3A3830', lineHeight: 1.7, paddingBottom: 24, borderBottom: '0.5px solid #D8D6D0', marginBottom: 24, fontFamily: 'var(--font-jakarta), sans-serif' }}>
                 {result.company_description}
               </p>
             )}
 
-            {/* Company details */}
             <div style={{ ...labelStyle, marginBottom: 16 }}>Company details</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px 40px', marginBottom: 32, paddingBottom: 32, borderBottom: '0.5px solid #D8D6D0' }}>
               {[
@@ -409,7 +430,6 @@ export default function ResearchClient() {
               ))}
             </div>
 
-            {/* Funding rounds */}
             {result.funding_rounds && result.funding_rounds.length > 0 && (
               <div style={{ marginBottom: 32 }}>
                 <div style={{ ...labelStyle, marginBottom: 14 }}>Recent funding rounds</div>
@@ -431,7 +451,6 @@ export default function ResearchClient() {
               </div>
             )}
 
-            {/* AI confidence */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, borderTop: '0.5px solid #D8D6D0' }}>
               <span style={{ fontSize: 12, color: '#9A9892', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>AI confidence</span>
               <div style={{ flex: 1, height: 2, background: '#E8E6E0', borderRadius: 1, overflow: 'hidden' }}>
@@ -441,8 +460,8 @@ export default function ResearchClient() {
             </div>
           </div>
 
-          {/* ── RIGHT: Related companies ── */}
-          <div style={{ paddingTop: 0 }}>
+          {/* RIGHT: Related companies */}
+          <div>
             <div style={{ ...labelStyle, marginBottom: 16 }}>
               Related companies
               {result.sector_primary && (
@@ -451,12 +470,9 @@ export default function ResearchClient() {
                 </span>
               )}
             </div>
-
             {related.length === 0 ? (
               <p style={{ fontSize: 13, color: '#C8C6C0', fontFamily: 'var(--font-jakarta), sans-serif', fontStyle: 'italic' }}>
-                {result.sector_primary
-                  ? `No matches found in ${result.sector_primary}`
-                  : 'No sector data to match against'}
+                {result.sector_primary ? `No matches found in ${result.sector_primary}` : 'No sector data to match against'}
               </p>
             ) : (
               <div style={{ borderTop: '1.5px solid #C4C2BA' }}>
@@ -466,10 +482,10 @@ export default function ResearchClient() {
                   return (
                     <div
                       key={c.id}
-                      onClick={() => window.location.href = href}
+                      onClick={() => { window.location.href = href; }}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '0.5px solid #DDD9D3', cursor: 'pointer', gap: 12 }}
-                      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.opacity = '0.7'}
-                      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.opacity = '1'}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.opacity = '0.7'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.opacity = '1'; }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 6, background: logo.bg, color: logo.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font-jakarta), sans-serif' }}>
@@ -497,8 +513,10 @@ export default function ResearchClient() {
 
       {/* Report modal */}
       {reportOpen && (
-        <div onClick={e => { if (e.target === e.currentTarget) setReportOpen(false); }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(26,24,20,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setReportOpen(false); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(26,24,20,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
+        >
           <div style={{ background: '#F2F0EB', borderRadius: 14, padding: 32, width: 440, boxShadow: '0 12px 48px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <h3 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 18, fontWeight: 400, color: '#1A1814' }}>Report an inaccuracy</h3>
@@ -509,16 +527,23 @@ export default function ResearchClient() {
             <p style={{ fontSize: 15, color: '#7A7870', marginBottom: 16, lineHeight: 1.6, fontFamily: 'var(--font-jakarta), sans-serif' }}>
               What&apos;s wrong with the <strong style={{ color: '#1A1814' }}>{result?.company_name}</strong> profile? This helps us improve the AI model.
             </p>
-            <textarea value={reportNote} onChange={e => setReportNote(e.target.value)}
+            <textarea
+              value={reportNote}
+              onChange={e => setReportNote(e.target.value)}
               placeholder="e.g. Wrong founding year, incorrect funding amount, missing sector…"
-              style={{ width: '100%', height: 100, padding: '10px 14px', border: '0.5px solid #D0CEC8', borderRadius: 8, fontSize: 15, color: '#1A1814', background: '#fff', fontFamily: 'var(--font-jakarta), sans-serif', resize: 'none', outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', height: 100, padding: '10px 14px', border: '0.5px solid #D0CEC8', borderRadius: 8, fontSize: 15, color: '#1A1814', background: '#fff', fontFamily: 'var(--font-jakarta), sans-serif', resize: 'none', outline: 'none', boxSizing: 'border-box' }}
+            />
             <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
-              <button onClick={() => setReportOpen(false)}
-                style={{ height: 38, padding: '0 16px', border: '0.5px solid #D0CEC8', borderRadius: 8, background: 'transparent', color: '#5A5852', fontSize: 15, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+              <button
+                onClick={() => setReportOpen(false)}
+                style={{ height: 38, padding: '0 16px', border: '0.5px solid #D0CEC8', borderRadius: 8, background: 'transparent', color: '#5A5852', fontSize: 15, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}
+              >
                 Cancel
               </button>
-              <button onClick={submitReport}
-                style={{ height: 38, padding: '0 16px', border: 'none', borderRadius: 8, background: '#1A1814', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+              <button
+                onClick={submitReport}
+                style={{ height: 38, padding: '0 16px', border: 'none', borderRadius: 8, background: '#1A1814', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif' }}
+              >
                 Send report
               </button>
             </div>
