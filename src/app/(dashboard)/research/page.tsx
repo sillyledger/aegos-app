@@ -6,24 +6,17 @@ export const metadata = {
 
 export default function ResearchPage() {
   return (
-    <div className="content">
-      <div style={{ marginBottom: 36 }}>
-        <p style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '0.1em',
-          textTransform: 'uppercase', color: '#9A9892',
-          marginBottom: 10, fontFamily: 'var(--font-jakarta)',
-        }}>
+    <div style={{ padding: '2rem 2.5rem', background: '#F2F0EB', minHeight: '100vh', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+      <div style={{ marginBottom: '1.75rem' }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#888780', marginBottom: 5, fontWeight: 600 }}>
           Resources
-        </p>
-        <h1 style={{
-          fontFamily: 'var(--font-lora)', fontWeight: 400,
-          letterSpacing: '-0.02em', fontSize: 36, color: '#1A1814',
-        }}>
-          Research &amp; Parsing
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#1A1814', lineHeight: 1.2, margin: 0 }}>
+          Research & Parsing
         </h1>
-        <p style={{ fontFamily: 'var(--font-jakarta)', marginTop: 6, color: '#9A9892', fontSize: 13 }}>
+        <div style={{ fontSize: 13, color: '#5F5E5A', marginTop: 5 }}>
           Search our database or build a company profile with AI
-        </p>
+        </div>
       </div>
 
       <ResearchClient />
