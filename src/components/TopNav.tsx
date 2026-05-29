@@ -6,11 +6,11 @@ const links = [
   { label: "COMPANY DATA", href: "/companies" },
   { label: "DEALS", href: "/deals" },
   { label: "INVESTORS", href: "/investors" },
+  { label: "MY INTEL", href: "/my-intel" },
 ];
 
 export default function TopNav() {
   const pathname = usePathname();
-
   return (
     <nav style={{
       flexShrink: 0,
@@ -46,7 +46,7 @@ export default function TopNav() {
           fontSize: "13px",
           letterSpacing: "0.08em",
           fontWeight: 500,
-          color: "rgba(26,24,20,0.42)",
+          color: pathname.startsWith("/research") ? "#1A1814" : "rgba(26,24,20,0.42)",
           cursor: "pointer",
           fontFamily: "var(--font-jakarta)",
         }}>
