@@ -16,10 +16,13 @@ Return exactly these fields:
   "business_model": string or null,
   "ownership_type": "Private" or "Public",
   "stage": "Seed" | "Series A" | "Series B" | "Series C" | "Growth" | "Public" | "Unknown",
-  "latest_round_amount_usd": number or null,
-  "latest_round_date": string (YYYY-MM format) or null,
   "total_raised_usd": number or null,
-  "lead_investor": string or null
+  "funding_rounds": array of objects, each with:
+    - "round": string (e.g. "Series A", "Seed", "Series D") or null,
+    - "amount_usd": number or null,
+    - "date": string (YYYY-MM format) or null,
+    - "lead_investor": string or null
+  (return empty array [] if unknown, most recent round first)
 }
 
 Return only the JSON object. Nothing else.`;
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        max_tokens: 1000,
+        max_tokens: 1500,
         temperature: 0.1,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
@@ -79,9 +82,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'AI returned unparseable data. Try again.' }, { status: 500 });
     }
 
-    // Normalise partial dates: "2023-06" → keep as-is, bare year "2023" → "2023-01"
-    if (data.latest_round_date && /^\d{4}$/.test(data.latest_round_date)) {
-      data.latest_round_date = `${data.latest_round_date}-01`;
+    // Normalise bare year dates in funding_rounds
+    if (Array.isArray(data.funding_rounds)) {
+      data.funding_rounds = data.funding_rounds.map((r: { date?: string }) => ({
+        ...r,
+        date: r.date && /^\d{4}$/.test(r.date) ? `${r.date}-01` : r.date,
+      }));
     }
 
     return NextResponse.json({ data });
