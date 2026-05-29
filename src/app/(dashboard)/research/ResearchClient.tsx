@@ -226,7 +226,7 @@ export default function ResearchClient() {
               style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: 15, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}
             />
             {input && (
-              <button type="button" onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); }}
+              <button type="button" onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); setExistingMatch(null); }}   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }}>   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg> </button>
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B0AEA8', display: 'flex', padding: 2, flexShrink: 0 }} onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); setRelated([]); setExistingMatch(null); }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
