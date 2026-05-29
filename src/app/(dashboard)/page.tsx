@@ -141,8 +141,8 @@ export default function OverviewPage() {
         </div>
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
           <div style={{ display: "flex", flexDirection: "column", paddingRight: "48px" }}>
-            {["Market Updates", "Company Analysis", "Recent Acquisitions"].map((label) => (
-              <a key={label} href="#" style={{
+            {[["Market Updates", "#"], ["Company Analysis", "#"], ["Recent Acquisitions", "#"]].map(([label, href]) => (
+              <a key={label} href={href} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "18px 0",
                 textDecoration: "none",
@@ -160,8 +160,8 @@ export default function OverviewPage() {
             ))}
           </div>
           <div style={{ display: "flex", flexDirection: "column", paddingLeft: "48px" }}>
-            {["Research & Parsing", "Aegos Score", "CRM & People"].map((label) => (
-              <a key={label} href="#" style={{
+            {[["Research & Parsing", "/research"], ["Aegos Score", "#"], ["CRM & People", "#"]].map(([label, href]) => (
+              <a key={label} href={href} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "18px 0",
                 textDecoration: "none",
