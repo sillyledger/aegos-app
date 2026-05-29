@@ -153,7 +153,7 @@ export default function ResearchClient() {
               onChange={e => setInput(e.target.value)}
               placeholder="Company name or website — e.g. stripe.com or Revolut"
               disabled={loading}
-              style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: 13, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}
+              style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: 15, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}
             />
             {input && (
               <button type="button" onClick={() => { setInput(''); setResult(null); setError(null); setSaved(false); }}
