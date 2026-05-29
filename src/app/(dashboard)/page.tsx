@@ -1,6 +1,6 @@
 export default function OverviewPage() {
   return (
-    <div style={{ padding: "44px 56px 80px", fontFamily: "var(--font-jakarta)" }}>
+    <div style={{ padding: "44px 56px 80px", fontFamily: "var(--font-jakarta)", background: "#F9FAFB", minHeight: "100vh" }}>
 
       {/* Page header */}
       <header style={{
@@ -22,7 +22,7 @@ export default function OverviewPage() {
         </h1>
         <p style={{
           fontSize: "14px",
-          color: "rgba(26,24,20,0.72)",
+          color: "#374151",
           maxWidth: "320px",
           lineHeight: 1.8,
           textAlign: "right",
@@ -39,8 +39,8 @@ export default function OverviewPage() {
         </span>
         <span style={{
           fontSize: "10px",
-          color: "rgba(26,24,20,0.75)",
-          border: "0.5px solid rgba(26,24,20,0.45)",
+          color: "#374151",
+          border: "0.5px solid #D1D5DB",
           padding: "5px 14px",
           borderRadius: "20px",
         }}>
@@ -59,7 +59,7 @@ export default function OverviewPage() {
           paddingBottom: "2px",
         }}>
           {["100","80","60","40","20","10"].map((v) => (
-            <span key={v} style={{ fontSize: "9px", color: "rgba(26,24,20,0.28)", textAlign: "right", display: "block" }}>{v}</span>
+            <span key={v} style={{ fontSize: "9px", color: "#9CA3AF", textAlign: "right", display: "block" }}>{v}</span>
           ))}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
@@ -115,12 +115,12 @@ export default function OverviewPage() {
       <div style={{ marginLeft: "28px", marginTop: "8px" }}>
         <div style={{ display: "flex", marginBottom: "6px" }}>
           {["J","F","M","A","M","J","J","A","S","O","N","D","J","F","M","A","M","J","J","A","S","O","N","D"].map((m, i) => (
-            <span key={i} style={{ flex: 1, fontSize: "8px", color: "rgba(26,24,20,0.28)", textAlign: "center" }}>{m}</span>
+            <span key={i} style={{ flex: 1, fontSize: "8px", color: "#9CA3AF", textAlign: "center" }}>{m}</span>
           ))}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           {["2025","Q1","Q2","Q3","Q4","Q1","Q2","Q3","2026"].map((v, i) => (
-            <span key={i} style={{ fontSize: "10px", color: "rgba(26,24,20,0.4)", fontWeight: 500 }}>{v}</span>
+            <span key={i} style={{ fontSize: "10px", color: "#6B7280", fontWeight: 500 }}>{v}</span>
           ))}
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function OverviewPage() {
                 fontSize: "18px",
                 fontWeight: 400,
                 letterSpacing: "-0.01em",
-                borderTop: "0.5px solid rgba(26,24,20,0.10)",
+                borderTop: "0.5px solid #E5E7EB",
               }}>
                 <span>{label}</span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, flexShrink: 0 }}>
@@ -169,7 +169,7 @@ export default function OverviewPage() {
                 fontSize: "18px",
                 fontWeight: 400,
                 letterSpacing: "-0.01em",
-                borderTop: "0.5px solid rgba(26,24,20,0.10)",
+                borderTop: "0.5px solid #E5E7EB",
               }}>
                 <span>{label}</span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, flexShrink: 0 }}>
