@@ -78,6 +78,7 @@ export default function CompaniesPage() {
       const { data, error } = await supabase
         .from('companies')
         .select('id, company_name, sector_primary, country, hq_city, ownership_type, company_description, founding_year, employee_count, website, slug')
+        .eq('status', 'published')
         .order('company_name', { ascending: true })
 
       if (error) {
