@@ -11,11 +11,22 @@ const supabase = createClient(
 export default async function CompanyProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const { data: company, error } = await supabase
+  // Try slug first, then fall back to UUID
+  let { data: company, error } = await supabase
     .from("companies")
     .select("*")
     .eq("slug", id)
     .single();
+
+  if (error || !company) {
+    const fallback = await supabase
+      .from("companies")
+      .select("*")
+      .eq("id", id)
+      .single();
+    company = fallback.data;
+    error = fallback.error;
+  }
 
   if (error || !company) notFound();
 
