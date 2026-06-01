@@ -9,22 +9,13 @@ const supabase = createClient(
 );
 
 const REGIONS = ['All', 'Southeast Asia', 'MENA', 'GCC', 'South Asia', 'Global'];
-const SOURCES = ['All', 'RSS Feed', 'Hacker News', 'Product Hunt', 'Companies House', 'SEC EDGAR'];
-
-const SOURCE_MAP: Record<string, string> = {
-  'RSS Feed': 'rss_feed',
-  'Hacker News': 'hacker_news',
-  'Product Hunt': 'product_hunt',
-  'Companies House': 'companies_house',
-  'SEC EDGAR': 'sec_edgar',
-};
 
 const SOURCE_LABEL_MAP: Record<string, string> = {
-  rss_feed: 'RSS Feed',
-  hacker_news: 'Hacker News',
-  product_hunt: 'Product Hunt',
+  rss_feed:        'RSS Feed',
+  hacker_news:     'Hacker News',
+  product_hunt:    'Product Hunt',
   companies_house: 'Companies House',
-  sec_edgar: 'SEC EDGAR',
+  sec_edgar:       'SEC EDGAR',
 };
 
 type BadgeStyle = {
@@ -75,7 +66,6 @@ export default function RundownClient() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [region, setRegion] = useState('All');
-  const [source, setSource] = useState('All');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [now, setNow] = useState('');
@@ -87,11 +77,11 @@ export default function RundownClient() {
 
   useEffect(() => {
     setPage(1);
-  }, [region, source]);
+  }, [region]);
 
   useEffect(() => {
     fetchItems();
-  }, [region, source, page]);
+  }, [region, page]);
 
   async function fetchItems() {
     setLoading(true);
@@ -101,9 +91,6 @@ export default function RundownClient() {
       .order('published_at', { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-    if (source !== 'All') {
-      query = query.eq('source', SOURCE_MAP[source]);
-    }
     if (region !== 'All') {
       query = query.eq('region', region);
     }
@@ -150,21 +137,17 @@ export default function RundownClient() {
     const style = SOURCE_BADGE[src] ?? { background: '#F3F4F6', color: '#6B7280' };
     return (
       <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, ...style }}>
-        {src}
+        {SOURCE_LABEL_MAP[src] ?? src}
       </span>
     );
   };
 
   return (
     <div>
-      {/* Filter rows */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+      {/* Region filter only */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.75rem' }}>
         <span style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#9CA3AF', minWidth: 52 }}>Region</span>
         {REGIONS.map(r => pill(r, region === r, () => setRegion(r)))}
-      </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.75rem' }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#9CA3AF', minWidth: 52 }}>Source</span>
-        {SOURCES.map(s => pill(s, source === s, () => setSource(s)))}
       </div>
 
       {/* Divider + live */}
@@ -185,7 +168,6 @@ export default function RundownClient() {
 
           {/* Main feed */}
           <div>
-            {/* Featured */}
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Top story</div>
@@ -197,12 +179,7 @@ export default function RundownClient() {
                     </span>
                   )}
                 </div>
-                <a
-                  href={featured.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: 'none' }}
-                >
+                <a href={featured.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                   <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 12, cursor: 'pointer' }}>
                     {featured.title}
                   </div>
@@ -212,14 +189,13 @@ export default function RundownClient() {
                   <span>·</span>
                   <span>{timeAgo(featured.published_at ?? featured.created_at)}</span>
                   <span>·</span>
-                  <a href={featured.url} target="_blank" rel="noopener noreferrer" style={{ color: '#185FA5', fontSize: 12, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+                  <a href={featured.url} target="_blank" rel="noopener noreferrer" style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>
                     Read source ↗
                   </a>
                 </div>
               </div>
             )}
 
-            {/* Story list */}
             <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: '1rem' }}>Latest stories</div>
             <div>
               {rest.map((item, i) => (
@@ -240,7 +216,6 @@ export default function RundownClient() {
               ))}
             </div>
 
-            {/* Pagination */}
             <div style={{ display: 'flex', gap: 6, marginTop: '1.5rem' }}>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
                 <button
@@ -274,7 +249,6 @@ export default function RundownClient() {
 
           {/* Sidebar */}
           <div>
-            {/* Sources today */}
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid #E5E7EB' }}>
                 Sources · this page
@@ -295,7 +269,6 @@ export default function RundownClient() {
               ))}
             </div>
 
-            {/* Info card */}
             <div style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 8, padding: '1rem 1.25rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>About The Rundown</div>
               <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
