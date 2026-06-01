@@ -141,7 +141,7 @@ export default function OverviewPage() {
         </div>
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr" }}>
           <div style={{ display: "flex", flexDirection: "column", paddingRight: "48px" }}>
-            {[["Market Updates", "#"], ["Company Analysis", "#"], ["Recent Acquisitions", "#"]].map(([label, href]) => (
+            {[["Market Updates", "#"], ["The Rundown", "/resources/rundown"], ["Company Analysis", "#"], ["Recent Acquisitions", "#"]].map(([label, href]) => (
               <a key={label} href={href} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "18px 0",
