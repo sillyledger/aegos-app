@@ -82,20 +82,36 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-// Finds the first company whose name appears in the headline
+// Finds the best single company match in a headline.
+// Rules:
+//   - Strip common legal suffixes before comparing (so "Nvidia Corporation" matches "Nvidia" in a headline)
+//   - Minimum 5 chars on the stripped name to avoid false positives ("Fun", "Jump", etc.)
+//   - Match must be a whole word (not a substring of another word)
+//   - Return the longest match found (most specific wins)
 function findCompanyMatch(title: string, companies: CompanyMatch[]): CompanyMatch | null {
   const lower = title.toLowerCase();
+  let best: CompanyMatch | null = null;
+  let bestLen = 0;
+
   for (const company of companies) {
-    const name = company.company_name.toLowerCase();
-    // Strip common suffixes for a looser match (e.g. "Nvidia" matches "NVIDIA Corporation")
-    const shortName = name
-      .replace(/\s+(inc\.?|corp\.?|corporation|ltd\.?|limited|plc|group|holdings?|technologies?|technology)$/i, '')
+    const stripped = company.company_name
+      .toLowerCase()
+      .replace(/\s+(inc\.?|corp\.?|corporation|ltd\.?|limited|plc|group|holdings?|technologies?|technology|systems?|services?|solutions?)$/i, '')
       .trim();
-    if (shortName.length >= 3 && lower.includes(shortName)) {
-      return company;
+
+    if (stripped.length < 5) continue;
+
+    // Escape regex special chars
+    const escaped = stripped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+
+    if (regex.test(lower) && stripped.length > bestLen) {
+      best = company;
+      bestLen = stripped.length;
     }
   }
-  return null;
+
+  return best;
 }
 
 const PAGE_SIZE = 10;
@@ -114,12 +130,9 @@ export default function RundownClient() {
       weekday: 'short', day: 'numeric', month: 'short',
       year: 'numeric', hour: '2-digit', minute: '2-digit',
     }));
-    // Fetch company list once on mount
     fetch('/api/companies/names')
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) setCompanies(data);
-      })
+      .then(data => { if (Array.isArray(data)) setCompanies(data); })
       .catch(() => {});
   }, []);
 
