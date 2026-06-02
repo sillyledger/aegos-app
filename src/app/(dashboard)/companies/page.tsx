@@ -17,8 +17,6 @@ type Company = {
   slug: string | null
 }
 
-const SECTOR_FILTERS = ['All', 'AI & ML', 'Fintech', 'SaaS', 'Deep Tech', 'Climate', 'Health']
-
 const SECTOR_COLORS: Record<string, { bg: string; text: string }> = {
   'artificial intelligence': { bg: '#EAF3DE', text: '#3B6D11' },
   'ai': { bg: '#EAF3DE', text: '#3B6D11' },
@@ -91,6 +89,15 @@ export default function CompaniesPage() {
     load()
   }, [])
 
+  // Build unique sector list from live data
+  const sectorFilters = useMemo(() => {
+    const seen = new Set<string>()
+    for (const c of companies) {
+      if (c.sector_primary) seen.add(c.sector_primary)
+    }
+    return ['All', ...Array.from(seen).sort()]
+  }, [companies])
+
   const filtered = useMemo(() => {
     let list = [...companies]
     if (search.trim()) {
@@ -103,8 +110,7 @@ export default function CompaniesPage() {
       )
     }
     if (activeSector !== 'All') {
-      const q = activeSector.toLowerCase().replace(' & ml', '')
-      list = list.filter((c) => (c.sector_primary || '').toLowerCase().includes(q))
+      list = list.filter((c) => c.sector_primary === activeSector)
     }
     list.sort((a, b) => {
       if (sortBy === 'country') return (a.country || '').localeCompare(b.country || '')
@@ -167,13 +173,24 @@ export default function CompaniesPage() {
         </select>
       </div>
 
-      {/* Sector pills */}
+      {/* Sector pills — built from live data */}
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-        {SECTOR_FILTERS.map((s) => (
+        {sectorFilters.map((s) => (
           <button
             key={s}
             onClick={() => { setActiveSector(s); setPage(1) }}
-            style={{ padding: '5px 12px', fontSize: 12, fontWeight: activeSector === s ? 600 : 500, borderRadius: 20, border: '1px solid', borderColor: activeSector === s ? '#1A1814' : '#E5E7EB', background: activeSector === s ? '#1A1814' : 'transparent', color: activeSector === s ? '#F9FAFB' : '#374151', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{
+              padding: '5px 12px',
+              fontSize: 12,
+              fontWeight: activeSector === s ? 600 : 500,
+              borderRadius: 20,
+              border: '1px solid',
+              borderColor: activeSector === s ? '#1A1814' : '#E5E7EB',
+              background: activeSector === s ? '#1A1814' : 'transparent',
+              color: activeSector === s ? '#F9FAFB' : '#374151',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
           >
             {s}
           </button>
