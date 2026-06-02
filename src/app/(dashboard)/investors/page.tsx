@@ -10,6 +10,7 @@ type Investor = {
   hq_country: string | null
   focus_sectors: string | null
   website: string | null
+  slug: string | null
 }
 
 const TYPE_FILTERS = ['All', 'VC', 'PE', 'Angel', 'CVC', 'Family Office']
@@ -68,7 +69,7 @@ export default function InvestorsPage() {
       )
       const { data, error } = await supabase
         .from('investors')
-        .select('id, investor_name, investor_type, hq_country, focus_sectors, website')
+        .select('id, investor_name, investor_type, hq_country, focus_sectors, website, slug')
         .order('investor_name', { ascending: true })
 
       if (error) setError(error.message)
@@ -190,11 +191,12 @@ export default function InvestorsPage() {
           const logoColor = getLogoColor(investor.investor_name)
           const typeStyle = getTypeStyle(investor.investor_type)
           const displayUrl = cleanWebsite(investor.website)
+          const href = `/investors/${investor.slug ?? investor.id}`
 
           return (
             <div
               key={investor.id}
-              onClick={() => window.location.href = `/investors/${investor.id}`}
+              onClick={() => window.location.href = href}
               style={{ display: 'grid', gridTemplateColumns: '2fr 80px 120px 1fr', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', borderRadius: 4, cursor: 'pointer' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.8)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
