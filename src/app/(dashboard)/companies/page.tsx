@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
@@ -59,7 +59,7 @@ function getSectorStyle(sector: string | null) {
 
 const PAGE_SIZE = 10
 
-export default function CompaniesPage() {
+function CompaniesInner() {
   const searchParams = useSearchParams()
 
   const [companies, setCompanies] = useState<Company[]>([])
@@ -333,5 +333,13 @@ export default function CompaniesPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function CompaniesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '3rem', color: '#6B7280', fontSize: 14, fontFamily: 'var(--font-jakarta), sans-serif' }}>Loading…</div>}>
+      <CompaniesInner />
+    </Suspense>
   )
 }
