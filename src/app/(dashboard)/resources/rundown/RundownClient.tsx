@@ -18,10 +18,7 @@ const SOURCE_LABEL_MAP: Record<string, string> = {
   sec_edgar:       'SEC EDGAR',
 };
 
-type BadgeStyle = {
-  background: string;
-  color: string;
-};
+type BadgeStyle = { background: string; color: string };
 
 const SOURCE_BADGE: Record<string, BadgeStyle> = {
   google_news:     { background: '#E6F1FB', color: '#185FA5' },
@@ -53,6 +50,23 @@ type FeedItem = {
   approved_at: string | null;
   created_at: string;
 };
+
+// Strip HTML tags and decode common entities
+function stripHtml(str: string): string {
+  return str
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+// Strip trailing source attribution like " - TechCrunch" or " – Crunchbase News"
+function cleanTitle(title: string): string {
+  return title.replace(/\s[–\-]\s[^–\-]{3,50}$/, '').trim();
+}
 
 function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
@@ -106,9 +120,7 @@ export default function RundownClient() {
   const rest = items.slice(1);
 
   const sourceCounts: Record<string, number> = {};
-  items.forEach(i => {
-    sourceCounts[i.source] = (sourceCounts[i.source] ?? 0) + 1;
-  });
+  items.forEach(i => { sourceCounts[i.source] = (sourceCounts[i.source] ?? 0) + 1; });
   const maxCount = Math.max(...Object.values(sourceCounts), 1);
 
   const srcBadge = (src: string) => {
@@ -122,7 +134,7 @@ export default function RundownClient() {
 
   return (
     <div>
-      {/* Divider + live indicator */}
+      {/* Live indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '0.5px solid #E5E7EB', paddingTop: 16, marginBottom: '1.75rem' }}>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>{total} articles</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
@@ -140,7 +152,7 @@ export default function RundownClient() {
 
           {/* Main feed */}
           <div>
-            {/* Featured / top story */}
+            {/* Top story */}
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Top story</div>
@@ -149,12 +161,13 @@ export default function RundownClient() {
                 </div>
                 <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                   <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 8, cursor: 'pointer' }}>
-                    {featured.title}
+                    {cleanTitle(featured.title)}
                   </div>
                 </a>
-                {featured.description && (
+                {featured.description && stripHtml(featured.description).length > 10 && (
                   <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginBottom: 10 }}>
-                    {featured.description.slice(0, 180)}{featured.description.length > 180 ? '…' : ''}
+                    {stripHtml(featured.description).slice(0, 200)}
+                    {stripHtml(featured.description).length > 200 ? '…' : ''}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
@@ -169,14 +182,14 @@ export default function RundownClient() {
               </div>
             )}
 
-            {/* Rest of feed */}
+            {/* Latest stories */}
             <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: '1rem' }}>Latest stories</div>
             <div>
               {rest.map((item, i) => (
                 <div key={item.id} style={{ padding: '13px 0', borderBottom: '0.5px solid #E5E7EB', borderTop: i === 0 ? '0.5px solid #E5E7EB' : 'none' }}>
                   <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1814', lineHeight: 1.4, marginBottom: 6 }}>
-                      {item.title}
+                      {cleanTitle(item.title)}
                     </div>
                   </a>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
