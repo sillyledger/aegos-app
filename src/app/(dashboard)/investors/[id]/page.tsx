@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import DealChart from "./DealChart";
 
 export const dynamic = "force-dynamic";
 
@@ -327,52 +328,7 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
               {/* Bar chart */}
               {chartYears.length > 0 && (
-                <div style={{ marginBottom: "32px" }}>
-                  <div style={{ fontSize: "11px", letterSpacing: "0.07em", color: "rgba(26,24,20,0.35)", fontWeight: 500, marginBottom: "12px" }}>DEAL VOLUME BY YEAR</div>
-                  <div style={{ position: "relative", width: "100%", height: "160px" }}>
-                    <canvas
-                      id="dealChart"
-                      data-years={JSON.stringify(chartYears)}
-                      data-amounts={JSON.stringify(chartAmounts)}
-                      role="img"
-                      aria-label={`Bar chart of deal volume by year for ${investor.investor_name}`}
-                    />
-                  </div>
-                  {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
-                  <script
-                    dangerouslySetInnerHTML={{
-                      __html: `
-                        (function() {
-                          function initChart() {
-                            if (typeof Chart === 'undefined') { setTimeout(initChart, 100); return; }
-                            var canvas = document.getElementById('dealChart');
-                            if (!canvas || canvas._chartInitialised) return;
-                            canvas._chartInitialised = true;
-                            var years = JSON.parse(canvas.dataset.years || '[]');
-                            var amounts = JSON.parse(canvas.dataset.amounts || '[]');
-                            var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                            var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-                            var textColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
-                            new Chart(canvas, {
-                              type: 'bar',
-                              data: { labels: years, datasets: [{ label: 'Amount ($M)', data: amounts, backgroundColor: '#3864C8', borderRadius: 3, borderSkipped: false }] },
-                              options: {
-                                responsive: true, maintainAspectRatio: false,
-                                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return ' $' + c.raw + 'M'; } } } },
-                                scales: {
-                                  x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } }, border: { display: false } },
-                                  y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 }, callback: function(v) { return '$' + v + 'M'; } }, border: { display: false } }
-                                }
-                              }
-                            });
-                          }
-                          if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initChart); } else { setTimeout(initChart, 0); }
-                        })();
-                      `,
-                    }}
-                  />
-                </div>
+                <DealChart years={chartYears} amounts={chartAmounts} investorName={investor.investor_name} />
               )}
 
               {/* Deal table */}
