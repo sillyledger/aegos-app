@@ -82,32 +82,31 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-// Finds the best single company match in a headline.
-// Rules:
-//   - Strip common legal suffixes before comparing (so "Nvidia Corporation" matches "Nvidia" in a headline)
-//   - Minimum 5 chars on the stripped name to avoid false positives ("Fun", "Jump", etc.)
-//   - Match must be a whole word (not a substring of another word)
-//   - Return the longest match found (most specific wins)
+// Derive a short keyword from the slug for matching
+// e.g. "nvidia-corporation" → "nvidia", "microsoft-corporation" → "microsoft"
+function slugToKeyword(slug: string): string {
+  return slug
+    .replace(/-?(inc|corp|corporation|ltd|limited|plc|group|holdings|technologies|technology|systems|services|solutions)$/i, '')
+    .replace(/-/g, ' ')
+    .trim();
+}
+
+// Find the company whose keyword appears EARLIEST in the headline.
+// This way the subject of the article (usually named first) wins over
+// companies mentioned later ("...from Microsoft, Dell, and HP").
 function findCompanyMatch(title: string, companies: CompanyMatch[]): CompanyMatch | null {
   const lower = title.toLowerCase();
   let best: CompanyMatch | null = null;
-  let bestLen = 0;
+  let bestIndex = Infinity;
 
   for (const company of companies) {
-    const stripped = company.company_name
-      .toLowerCase()
-      .replace(/\s+(inc\.?|corp\.?|corporation|ltd\.?|limited|plc|group|holdings?|technologies?|technology|systems?|services?|solutions?)$/i, '')
-      .trim();
+    const keyword = slugToKeyword(company.slug);
+    if (keyword.length < 5) continue;
 
-    if (stripped.length < 5) continue;
-
-    // Escape regex special chars
-    const escaped = stripped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-
-    if (regex.test(lower) && stripped.length > bestLen) {
+    const idx = lower.indexOf(keyword);
+    if (idx !== -1 && idx < bestIndex) {
       best = company;
-      bestLen = stripped.length;
+      bestIndex = idx;
     }
   }
 
@@ -203,7 +202,6 @@ export default function RundownClient() {
 
   return (
     <div>
-      {/* Live indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '0.5px solid #E5E7EB', paddingTop: 16, marginBottom: '1.75rem' }}>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>{total} articles</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
