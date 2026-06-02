@@ -12,7 +12,8 @@
     "next": "^16.2.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@supabase/supabase-js": "^2.0.0"
+    "@supabase/supabase-js": "^2.0.0",
+    "chart.js": "^4.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
