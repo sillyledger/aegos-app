@@ -9,6 +9,29 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const SECTOR_COLORS: Record<string, { bg: string; text: string }> = {
+  'artificial intelligence': { bg: '#EAF3DE', text: '#3B6D11' },
+  'ai': { bg: '#EAF3DE', text: '#3B6D11' },
+  'machine learning': { bg: '#EAF3DE', text: '#3B6D11' },
+  'software': { bg: '#EAF3DE', text: '#3B6D11' },
+  'saas': { bg: '#EAF3DE', text: '#3B6D11' },
+  'fintech': { bg: '#E6F1FB', text: '#185FA5' },
+  'financial': { bg: '#E6F1FB', text: '#185FA5' },
+  'climate': { bg: '#FBEAF0', text: '#72243E' },
+  'health': { bg: '#FAEEDA', text: '#633806' },
+  'deep tech': { bg: '#EEEDFE', text: '#534AB7' },
+  'technology': { bg: '#EAF3DE', text: '#3B6D11' },
+}
+
+function getSectorStyle(sector: string | null) {
+  if (!sector) return { bg: '#F3F4F6', text: '#6B7280' }
+  const lower = sector.toLowerCase()
+  for (const key of Object.keys(SECTOR_COLORS)) {
+    if (lower.includes(key)) return SECTOR_COLORS[key]
+  }
+  return { bg: '#F3F4F6', text: '#6B7280' }
+}
+
 function timeAgo(dateStr: string): string {
   const now = new Date();
   const then = new Date(dateStr);
@@ -24,7 +47,6 @@ function timeAgo(dateStr: string): string {
 export default async function CompanyProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Try slug first, then fall back to UUID
   let { data: company, error } = await supabase
     .from("companies")
     .select("*")
@@ -43,7 +65,6 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
 
   if (error || !company) notFound();
 
-  // Fetch related news — match on company name in title
   const { data: relatedNews } = await supabase
     .from("news_articles")
     .select("id, title, source, source_url, created_at, source_name")
@@ -51,7 +72,6 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
     .order("created_at", { ascending: false })
     .limit(5);
 
-  // Fetch related companies — same primary sector, exclude self
   const { data: relatedCompanies } = await supabase
     .from("companies")
     .select("id, company_name, sector_primary, sector_secondary, slug")
@@ -73,6 +93,9 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
     marginBottom: "40px",
     marginTop: "40px",
   };
+
+  const primarySector = getSectorStyle(company.sector_primary);
+  const secondarySector = getSectorStyle(company.sector_secondary);
 
   return (
     <div style={{
@@ -97,25 +120,52 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
             fontFamily: "var(--font-lora)",
             fontSize: "36px",
             fontWeight: 400,
-            margin: "0 0 14px",
+            margin: "0 0 16px",
             lineHeight: 1.2,
             letterSpacing: "-0.01em",
           }}>
             {company.company_name}
           </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
             {company.sector_primary && (
-              <span style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.05em", padding: "4px 10px", borderRadius: "3px", background: "rgba(26,24,20,0.06)", color: "rgba(26,24,20,0.65)" }}>
+              <span style={{
+                display: "inline-block",
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontWeight: 600,
+                borderRadius: "3px",
+                background: primarySector.bg,
+                color: primarySector.text,
+                whiteSpace: "nowrap",
+              }}>
                 {company.sector_primary}
               </span>
             )}
             {company.sector_secondary && (
-              <span style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.05em", padding: "4px 10px", borderRadius: "3px", background: "rgba(26,24,20,0.04)", color: "rgba(26,24,20,0.45)" }}>
+              <span style={{
+                display: "inline-block",
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontWeight: 600,
+                borderRadius: "3px",
+                background: secondarySector.bg,
+                color: secondarySector.text,
+                whiteSpace: "nowrap",
+              }}>
                 {company.sector_secondary}
               </span>
             )}
             {company.ownership_type && (
-              <span style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.05em", padding: "4px 10px", borderRadius: "3px", border: "0.5px solid rgba(26,24,20,0.15)", color: "rgba(26,24,20,0.45)" }}>
+              <span style={{
+                display: "inline-block",
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontWeight: 600,
+                borderRadius: "3px",
+                border: "1px solid #E5E7EB",
+                color: "#374151",
+                whiteSpace: "nowrap",
+              }}>
                 {company.ownership_type}
               </span>
             )}
@@ -125,7 +175,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
         <div style={divider} />
 
         {/* 02 — AT A GLANCE */}
-        <div style={{ marginBottom: "0" }}>
+        <div>
           <div style={sectionLabel}>02 — AT A GLANCE</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: "0.5px solid rgba(26,24,20,0.1)" }}>
             {[
@@ -228,36 +278,6 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
         flexDirection: "column",
         gap: "36px",
       }}>
-
-        {/* Quick actions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <button style={{
-            width: "100%",
-            padding: "9px 0",
-            background: "#3864C8",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            fontSize: "13px",
-            cursor: "pointer",
-            fontFamily: "var(--font-jakarta)",
-          }}>
-            + Add to watchlist
-          </button>
-          <button style={{
-            width: "100%",
-            padding: "9px 0",
-            background: "transparent",
-            color: "rgba(26,24,20,0.6)",
-            border: "0.5px solid rgba(26,24,20,0.18)",
-            borderRadius: "5px",
-            fontSize: "13px",
-            cursor: "pointer",
-            fontFamily: "var(--font-jakarta)",
-          }}>
-            Save note
-          </button>
-        </div>
 
         {/* Aegos Score */}
         <div>
