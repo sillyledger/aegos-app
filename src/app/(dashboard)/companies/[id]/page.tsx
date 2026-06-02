@@ -9,8 +9,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-
-
 function timeAgo(dateStr: string): string {
   const now = new Date();
   const then = new Date(dateStr);
@@ -73,6 +71,36 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
     marginTop: "40px",
   };
 
+  const pillStyle: React.CSSProperties = {
+    display: "inline-block",
+    padding: "5px 12px",
+    fontSize: "12px",
+    fontWeight: 500,
+    borderRadius: "20px",
+    border: "1px solid #E5E7EB",
+    color: "#374151",
+    whiteSpace: "nowrap",
+    background: "transparent",
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "background 0.15s ease, border-color 0.15s ease",
+  };
+
+  const pills: { label: string; href: string }[] = [
+    company.sector_primary && {
+      label: company.sector_primary,
+      href: `/companies?sector=${encodeURIComponent(company.sector_primary)}`,
+    },
+    company.sector_secondary && {
+      label: company.sector_secondary,
+      href: `/companies?sector=${encodeURIComponent(company.sector_secondary)}`,
+    },
+    company.ownership_type && {
+      label: company.ownership_type,
+      href: `/companies?type=${encodeURIComponent(company.ownership_type)}`,
+    },
+  ].filter(Boolean) as { label: string; href: string }[];
+
   return (
     <div style={{
       display: "grid",
@@ -103,20 +131,14 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
             {company.company_name}
           </h1>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-            {[company.sector_primary, company.sector_secondary, company.ownership_type].filter(Boolean).map((label) => (
-              <span key={label} style={{
-                display: "inline-block",
-                padding: "5px 12px",
-                fontSize: "12px",
-                fontWeight: 500,
-                borderRadius: "20px",
-                border: "1px solid #E5E7EB",
-                color: "#374151",
-                whiteSpace: "nowrap",
-                background: "transparent",
-              }}>
-                {label}
-              </span>
+            {pills.map((pill) => (
+              <Link
+                key={pill.label}
+                href={pill.href}
+                style={pillStyle}
+              >
+                {pill.label}
+              </Link>
             ))}
           </div>
         </div>
