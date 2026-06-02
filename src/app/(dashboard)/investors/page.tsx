@@ -194,7 +194,8 @@ export default function InvestorsPage() {
           return (
             <div
               key={investor.id}
-              style={{ display: 'grid', gridTemplateColumns: '2fr 80px 120px 1fr', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', borderRadius: 4 }}
+              onClick={() => window.location.href = `/investors/${investor.id}`}
+              style={{ display: 'grid', gridTemplateColumns: '2fr 80px 120px 1fr', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', borderRadius: 4, cursor: 'pointer' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.8)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
             >
