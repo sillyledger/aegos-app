@@ -118,7 +118,6 @@ export default function RundownClient() {
   const [total, setTotal] = useState(0);
   const [now, setNow] = useState('');
 
-  // Search state
   const [query, setQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
   const [suggestions, setSuggestions] = useState<FeedItem[]>([]);
@@ -136,7 +135,6 @@ export default function RundownClient() {
       .then(data => { if (Array.isArray(data)) setCompanies(data); })
       .catch(() => {});
 
-    // Fetch all items once for search (no pagination limit)
     supabase
       .from('news_articles')
       .select('*')
@@ -149,7 +147,6 @@ export default function RundownClient() {
     fetchItems();
   }, [page]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -160,7 +157,6 @@ export default function RundownClient() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Update suggestions as user types
   useEffect(() => {
     if (query.trim().length < 2) {
       setSuggestions([]);
@@ -197,21 +193,13 @@ export default function RundownClient() {
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') handleSearch();
-    if (e.key === 'Escape') {
-      setShowDropdown(false);
-      setQuery('');
-      setActiveQuery('');
-    }
+    if (e.key === 'Escape') { setShowDropdown(false); setQuery(''); setActiveQuery(''); }
   }
 
   function clearSearch() {
-    setQuery('');
-    setActiveQuery('');
-    setSuggestions([]);
-    setShowDropdown(false);
+    setQuery(''); setActiveQuery(''); setSuggestions([]); setShowDropdown(false);
   }
 
-  // Filtered items when activeQuery is set
   const filteredItems = activeQuery
     ? allItems.filter(item => item.title.toLowerCase().includes(activeQuery.toLowerCase()))
     : null;
@@ -258,18 +246,30 @@ export default function RundownClient() {
 
   return (
     <div>
-      {/* Live indicator */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '0.5px solid #E5E7EB', paddingTop: 16, marginBottom: '1.75rem' }}>
+      {/* Header row: title left, search right */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '2rem', marginBottom: '1.75rem' }}>
+
+        {/* Title */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7280', marginBottom: 5, fontWeight: 600 }}>
+            The Rundown
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#1A1814', lineHeight: 1.2, margin: 0 }}>
+            Market Intelligence
+          </h1>
+          <h2 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#9CA3AF', lineHeight: 1.2, margin: 0 }}>
+            Feed.
+          </h2>
+        </div>
 
         {/* Search bar */}
-        <div ref={searchRef} style={{ position: 'relative', width: '100%', maxWidth: 520 }}>
+        <div ref={searchRef} style={{ position: 'relative', width: '100%', maxWidth: 520, marginTop: 8 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             border: `0.5px solid ${showDropdown || query ? '#3864C8' : '#D1D5DB'}`,
             borderRadius: showDropdown ? '8px 8px 0 0' : 8,
-            padding: '0 14px', height: 38,
+            padding: '0 14px', height: 42,
             background: '#fff',
-            transition: 'border-color 0.15s',
           }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -288,11 +288,10 @@ export default function RundownClient() {
               }}
             />
             {query && (
-              <button onClick={clearSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 0, fontSize: 16, lineHeight: 1 }}>×</button>
+              <button onClick={clearSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 0, fontSize: 18, lineHeight: 1 }}>×</button>
             )}
           </div>
 
-          {/* Dropdown suggestions */}
           {showDropdown && suggestions.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
@@ -323,8 +322,11 @@ export default function RundownClient() {
             </div>
           )}
         </div>
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF', flexShrink: 0 }}>
+      {/* Live indicator */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderTop: '0.5px solid #E5E7EB', paddingTop: 12, marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#97C459', display: 'inline-block' }} />
           Live · {now}
         </div>
@@ -354,7 +356,6 @@ export default function RundownClient() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem', alignItems: 'start' }}>
 
-          {/* Main feed */}
           <div>
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
@@ -408,7 +409,6 @@ export default function RundownClient() {
               ))}
             </div>
 
-            {/* Only show pagination when not searching */}
             {!activeQuery && (
               <div style={{ display: 'flex', gap: 6, marginTop: '1.5rem' }}>
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
@@ -439,7 +439,6 @@ export default function RundownClient() {
             )}
           </div>
 
-          {/* Sidebar */}
           <div>
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid #E5E7EB' }}>
