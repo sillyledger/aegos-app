@@ -30,16 +30,6 @@ const SOURCE_BADGE: Record<string, BadgeStyle> = {
   sec_edgar:       { background: '#EAF3DE', color: '#3B6D11' },
 };
 
-const SOURCE_DOT: Record<string, string> = {
-  google_news:     '#185FA5',
-  techcrunch:      '#D85A30',
-  rss_feed:        '#185FA5',
-  hacker_news:     '#EF9F27',
-  product_hunt:    '#D85A30',
-  companies_house: '#534AB7',
-  sec_edgar:       '#97C459',
-};
-
 type FeedItem = {
   id: string;
   title: string;
@@ -50,6 +40,12 @@ type FeedItem = {
   relevance_score: number | null;
   approved_at: string | null;
   created_at: string;
+};
+
+type CompanyMatch = {
+  id: string;
+  company_name: string;
+  slug: string;
 };
 
 function stripHtml(str: string): string {
@@ -68,7 +64,6 @@ function cleanTitle(title: string): string {
   return title.replace(/\s[–\-]\s[^–\-]{3,50}$/, '').trim();
 }
 
-// Use source_name (real publisher) if available, else fall back to source label
 function displaySource(item: FeedItem): string {
   if (item.source_name && item.source_name.trim().length > 0) {
     return item.source_name.trim();
@@ -87,10 +82,27 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+// Finds the first company whose name appears in the headline
+function findCompanyMatch(title: string, companies: CompanyMatch[]): CompanyMatch | null {
+  const lower = title.toLowerCase();
+  for (const company of companies) {
+    const name = company.company_name.toLowerCase();
+    // Strip common suffixes for a looser match (e.g. "Nvidia" matches "NVIDIA Corporation")
+    const shortName = name
+      .replace(/\s+(inc\.?|corp\.?|corporation|ltd\.?|limited|plc|group|holdings?|technologies?|technology)$/i, '')
+      .trim();
+    if (shortName.length >= 3 && lower.includes(shortName)) {
+      return company;
+    }
+  }
+  return null;
+}
+
 const PAGE_SIZE = 10;
 
 export default function RundownClient() {
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [companies, setCompanies] = useState<CompanyMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -102,6 +114,13 @@ export default function RundownClient() {
       weekday: 'short', day: 'numeric', month: 'short',
       year: 'numeric', hour: '2-digit', minute: '2-digit',
     }));
+    // Fetch company list once on mount
+    fetch('/api/companies/names')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setCompanies(data);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -143,6 +162,32 @@ export default function RundownClient() {
     );
   };
 
+  const companyBadge = (title: string) => {
+    const match = findCompanyMatch(title, companies);
+    if (!match) return null;
+    return (
+      <a
+        href={`/companies/${match.slug}`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          fontSize: 11,
+          padding: '3px 8px',
+          borderRadius: 4,
+          background: 'rgba(56,100,200,0.08)',
+          color: '#3864C8',
+          border: '0.5px solid rgba(56,100,200,0.25)',
+          fontWeight: 500,
+          textDecoration: 'none',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {match.company_name} ↗
+      </a>
+    );
+  };
+
   return (
     <div>
       {/* Live indicator */}
@@ -166,8 +211,9 @@ export default function RundownClient() {
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Top story</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                   {srcBadge(featured)}
+                  {companyBadge(featured.title)}
                 </div>
                 <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                   <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 8, cursor: 'pointer' }}>
@@ -201,8 +247,9 @@ export default function RundownClient() {
                       {cleanTitle(item.title)}
                     </div>
                   </a>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#9CA3AF', flexWrap: 'wrap' }}>
                     {srcBadge(item)}
+                    {companyBadge(item.title)}
                     <span>·</span>
                     <span>{timeAgo(item.approved_at ?? item.created_at)}</span>
                     <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>↗</a>
