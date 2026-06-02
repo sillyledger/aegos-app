@@ -48,14 +48,35 @@ function formatDateShort(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 }
 
+type CompanyRef = { company_name: string; slug: string | null };
+
 type DealRow = {
   id: string;
   stage: string | null;
   amount_usd: number | null;
   announcement_date: string | null;
-  companies: { company_name: string; slug: string | null } | null;
+  companies: CompanyRef | null;
   role: "Lead" | "Co-investor";
 };
+
+type RawDeal = {
+  id: string;
+  stage: string | null;
+  amount_usd: number | null;
+  announcement_date: string | null;
+  companies: unknown;
+};
+
+function extractCompany(raw: unknown): CompanyRef | null {
+  if (!raw) return null;
+  if (Array.isArray(raw)) {
+    const first = raw[0];
+    if (!first) return null;
+    return { company_name: first.company_name ?? "", slug: first.slug ?? null };
+  }
+  const obj = raw as { company_name?: string; slug?: string | null };
+  return { company_name: obj.company_name ?? "", slug: obj.slug ?? null };
+}
 
 export default async function InvestorProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -78,14 +99,12 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
   if (error || !investor) notFound();
 
-  // Fetch lead deals
-  const { data: leadDeals } = await supabase
+  const { data: leadDealsRaw } = await supabase
     .from("deals")
     .select("id, stage, amount_usd, announcement_date, companies(company_name, slug)")
     .eq("lead_investor_id", investor.id)
     .order("announcement_date", { ascending: false, nullsFirst: false });
 
-  // Fetch co-investor deal IDs
   const { data: coInvestorLinks } = await supabase
     .from("deal_co_investors")
     .select("deal_id")
@@ -99,26 +118,38 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
       .select("id, stage, amount_usd, announcement_date, companies(company_name, slug)")
       .in("id", dealIds)
       .order("announcement_date", { ascending: false, nullsFirst: false });
-    coDeals = (coDealsRaw || []).map((d) => ({ ...d, role: "Co-investor" as const, companies: (d.companies as { company_name: string; slug: string | null } | null) }));
+
+    coDeals = (coDealsRaw as RawDeal[] || []).map((d) => ({
+      id: d.id,
+      stage: d.stage,
+      amount_usd: d.amount_usd,
+      announcement_date: d.announcement_date,
+      companies: extractCompany(d.companies),
+      role: "Co-investor" as const,
+    }));
   }
 
-  const allDeals: DealRow[] = [
-    ...(leadDeals || []).map((d) => ({ ...d, role: "Lead" as const, companies: (d.companies as { company_name: string; slug: string | null } | null) })),
-    ...coDeals,
-  ].sort((a, b) => {
+  const leadDeals: DealRow[] = (leadDealsRaw as RawDeal[] || []).map((d) => ({
+    id: d.id,
+    stage: d.stage,
+    amount_usd: d.amount_usd,
+    announcement_date: d.announcement_date,
+    companies: extractCompany(d.companies),
+    role: "Lead" as const,
+  }));
+
+  const allDeals: DealRow[] = [...leadDeals, ...coDeals].sort((a, b) => {
     if (!a.announcement_date) return 1;
     if (!b.announcement_date) return -1;
     return new Date(b.announcement_date).getTime() - new Date(a.announcement_date).getTime();
   });
 
-  // Summary stats
   const totalDeals = allDeals.length;
   const totalDeployed = allDeals.reduce((sum, d) => sum + (d.amount_usd || 0), 0);
   const dealsWithAmount = allDeals.filter((d) => d.amount_usd);
   const avgDealSize = dealsWithAmount.length > 0 ? totalDeployed / dealsWithAmount.length : 0;
   const latestDeal = allDeals.find((d) => d.announcement_date);
 
-  // Group by year for chart
   const byYear: Record<string, number> = {};
   for (const d of allDeals) {
     if (d.announcement_date && d.amount_usd) {
@@ -129,7 +160,6 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
   const chartYears = Object.keys(byYear).sort();
   const chartAmounts = chartYears.map((y) => Math.round(byYear[y] / 1_000_000));
 
-  // Related news
   const { data: relatedNews } = await supabase
     .from("news_articles")
     .select("id, title, source, source_url, created_at, source_name")
@@ -137,7 +167,6 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
     .order("created_at", { ascending: false })
     .limit(5);
 
-  // Related investors
   const { data: relatedInvestors } = await supabase
     .from("investors")
     .select("id, investor_name, investor_type, hq_country, slug")
@@ -204,17 +233,10 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
         minWidth: 0,
       }}>
 
-        {/* 01 — INVESTOR PROFILE */}
+        {/* 01 */}
         <div style={{ marginBottom: "40px" }}>
           <div style={{ ...sectionLabel, marginBottom: "10px" }}>01 — INVESTOR PROFILE</div>
-          <h1 style={{
-            fontFamily: "var(--font-lora)",
-            fontSize: "36px",
-            fontWeight: 400,
-            margin: "0 0 16px",
-            lineHeight: 1.2,
-            letterSpacing: "-0.01em",
-          }}>
+          <h1 style={{ fontFamily: "var(--font-lora)", fontSize: "36px", fontWeight: 400, margin: "0 0 16px", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
             {investor.investor_name}
           </h1>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
@@ -226,7 +248,7 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
         <div style={divider} />
 
-        {/* 02 — AT A GLANCE */}
+        {/* 02 */}
         <div>
           <div style={sectionLabel}>02 — AT A GLANCE</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: "0.5px solid rgba(26,24,20,0.1)" }}>
@@ -236,12 +258,8 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
               { label: "AUM Range", value: investor.aum_range ?? "—" },
             ].map((stat) => (
               <div key={stat.label} style={{ padding: "20px 24px", borderBottom: "0.5px solid rgba(26,24,20,0.1)", borderRight: "0.5px solid rgba(26,24,20,0.1)" }}>
-                <div style={{ fontSize: "11px", letterSpacing: "0.06em", color: "rgba(26,24,20,0.38)", marginBottom: "6px", fontWeight: 500 }}>
-                  {stat.label.toUpperCase()}
-                </div>
-                <div style={{ fontSize: "20px", fontFamily: "var(--font-lora)", fontWeight: 400, color: "#1A1814" }}>
-                  {stat.value}
-                </div>
+                <div style={{ fontSize: "11px", letterSpacing: "0.06em", color: "rgba(26,24,20,0.38)", marginBottom: "6px", fontWeight: 500 }}>{stat.label.toUpperCase()}</div>
+                <div style={{ fontSize: "20px", fontFamily: "var(--font-lora)", fontWeight: 400, color: "#1A1814" }}>{stat.value}</div>
               </div>
             ))}
           </div>
@@ -249,7 +267,7 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
         <div style={divider} />
 
-        {/* 03 — ABOUT */}
+        {/* 03 */}
         <div>
           <div style={sectionLabel}>03 — ABOUT</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px" }}>
@@ -269,22 +287,14 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                 { label: "Founded", value: investor.founded_year, isLink: false },
               ].map((row) => (
                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", gap: "16px" }}>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.05em", fontWeight: 500, color: "rgba(26,24,20,0.35)" }}>
-                    {row.label.toUpperCase()}
-                  </span>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.05em", fontWeight: 500, color: "rgba(26,24,20,0.35)" }}>{row.label.toUpperCase()}</span>
                   {row.isLink && row.value ? (
-                    <a
-                      href={String(row.value).startsWith("http") ? String(row.value) : `https://${row.value}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ fontSize: "13px", color: "#1A1814", textDecoration: "none", borderBottom: "0.5px solid rgba(26,24,20,0.25)" }}
-                    >
+                    <a href={String(row.value).startsWith("http") ? String(row.value) : `https://${row.value}`} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: "13px", color: "#1A1814", textDecoration: "none", borderBottom: "0.5px solid rgba(26,24,20,0.25)" }}>
                       {String(row.value).replace(/^https?:\/\//, "")}
                     </a>
                   ) : (
-                    <span style={{ fontSize: "13px", color: row.value ? "#1A1814" : "rgba(26,24,20,0.25)", textAlign: "right" }}>
-                      {row.value ?? "—"}
-                    </span>
+                    <span style={{ fontSize: "13px", color: row.value ? "#1A1814" : "rgba(26,24,20,0.25)", textAlign: "right" }}>{row.value ?? "—"}</span>
                   )}
                 </div>
               ))}
@@ -329,6 +339,8 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                       style={{ width: "100%", height: "100%" }}
                     />
                   </div>
+                  {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+                  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
                   <script
                     dangerouslySetInnerHTML={{
                       __html: `
@@ -336,7 +348,8 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                           function initChart() {
                             if (typeof Chart === 'undefined') { setTimeout(initChart, 100); return; }
                             var canvas = document.getElementById('dealChart');
-                            if (!canvas) return;
+                            if (!canvas || canvas._chartInitialised) return;
+                            canvas._chartInitialised = true;
                             var years = JSON.parse(canvas.dataset.years || '[]');
                             var amounts = JSON.parse(canvas.dataset.amounts || '[]');
                             var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -344,10 +357,7 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                             var textColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
                             new Chart(canvas, {
                               type: 'bar',
-                              data: {
-                                labels: years,
-                                datasets: [{ label: 'Amount ($M)', data: amounts, backgroundColor: '#3864C8', borderRadius: 3, borderSkipped: false }]
-                              },
+                              data: { labels: years, datasets: [{ label: 'Amount ($M)', data: amounts, backgroundColor: '#3864C8', borderRadius: 3, borderSkipped: false }] },
                               options: {
                                 responsive: true, maintainAspectRatio: false,
                                 plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return ' $' + c.raw + 'M'; } } } },
@@ -358,12 +368,11 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                               }
                             });
                           }
-                          if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initChart); } else { initChart(); }
+                          if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initChart); } else { setTimeout(initChart, 0); }
                         })();
                       `,
                     }}
                   />
-                  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
                 </div>
               )}
 
@@ -378,7 +387,6 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                 const stageStyle = STAGE_COLORS[deal.stage || ""] || { bg: "#F3F4F6", text: "#6B7280" };
                 const companyHref = deal.companies?.slug ? `/companies/${deal.companies.slug}` : null;
                 const isLead = deal.role === "Lead";
-
                 return (
                   <div key={deal.id} style={{ display: "grid", gridTemplateColumns: "2fr 90px 90px 110px 100px", gap: "0 12px", padding: "12px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
                     <span style={{ fontSize: "13px", fontWeight: 600, color: "#1A1814" }}>
@@ -395,22 +403,10 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                         </span>
                       ) : <span style={{ color: "rgba(26,24,20,0.25)", fontSize: "13px" }}>—</span>}
                     </span>
-                    <span style={{ fontSize: "13px", color: deal.amount_usd ? "#1A1814" : "rgba(26,24,20,0.25)" }}>
-                      {formatAmount(deal.amount_usd)}
-                    </span>
-                    <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.4)" }}>
-                      {formatDate(deal.announcement_date)}
-                    </span>
+                    <span style={{ fontSize: "13px", color: deal.amount_usd ? "#1A1814" : "rgba(26,24,20,0.25)" }}>{formatAmount(deal.amount_usd)}</span>
+                    <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.4)" }}>{formatDate(deal.announcement_date)}</span>
                     <span>
-                      <span style={{
-                        display: "inline-block",
-                        padding: "2px 8px",
-                        fontSize: "11px",
-                        fontWeight: 500,
-                        borderRadius: "3px",
-                        background: isLead ? "#E6F1FB" : "#EEEDFE",
-                        color: isLead ? "#185FA5" : "#534AB7",
-                      }}>
+                      <span style={{ display: "inline-block", padding: "2px 8px", fontSize: "11px", fontWeight: 500, borderRadius: "3px", background: isLead ? "#E6F1FB" : "#EEEDFE", color: isLead ? "#185FA5" : "#534AB7" }}>
                         {deal.role}
                       </span>
                     </span>
@@ -431,7 +427,6 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
       {/* ── RIGHT SIDEBAR ── */}
       <div style={{ padding: "48px 24px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: "36px" }}>
 
-        {/* Related News */}
         <div>
           <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>RELATED NEWS</div>
           <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>Recent articles mentioning {investor.investor_name}</div>
@@ -457,7 +452,6 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
           )}
         </div>
 
-        {/* Related Investors */}
         <div>
           <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>RELATED INVESTORS</div>
           <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>{investor.investor_type ?? "Same type"}</div>
