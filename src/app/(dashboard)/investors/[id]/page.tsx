@@ -329,14 +329,13 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
               {chartYears.length > 0 && (
                 <div style={{ marginBottom: "32px" }}>
                   <div style={{ fontSize: "11px", letterSpacing: "0.07em", color: "rgba(26,24,20,0.35)", fontWeight: 500, marginBottom: "12px" }}>DEAL VOLUME BY YEAR</div>
-                  <div style={{ position: "relative", height: "140px" }}>
+                  <div style={{ position: "relative", width: "100%", height: "160px" }}>
                     <canvas
                       id="dealChart"
                       data-years={JSON.stringify(chartYears)}
                       data-amounts={JSON.stringify(chartAmounts)}
                       role="img"
                       aria-label={`Bar chart of deal volume by year for ${investor.investor_name}`}
-                      style={{ width: "100%", height: "100%" }}
                     />
                   </div>
                   {/* eslint-disable-next-line @next/next/no-sync-scripts */}
