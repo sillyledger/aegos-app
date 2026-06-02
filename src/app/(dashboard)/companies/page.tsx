@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
 type Company = {
@@ -59,11 +60,14 @@ function getSectorStyle(sector: string | null) {
 const PAGE_SIZE = 10
 
 export default function CompaniesPage() {
+  const searchParams = useSearchParams()
+
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [activeSector, setActiveSector] = useState('All')
+  const [activeType, setActiveType] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'name' | 'country' | 'sector'>('name')
   const [page, setPage] = useState(1)
 
@@ -89,6 +93,15 @@ export default function CompaniesPage() {
     load()
   }, [])
 
+  // Apply URL params once data is loaded
+  useEffect(() => {
+    if (loading) return
+    const sectorParam = searchParams.get('sector')
+    const typeParam = searchParams.get('type')
+    if (sectorParam) setActiveSector(sectorParam)
+    if (typeParam) setActiveType(typeParam)
+  }, [loading, searchParams])
+
   // Build unique sector list from live data
   const sectorFilters = useMemo(() => {
     const seen = new Set<string>()
@@ -112,13 +125,16 @@ export default function CompaniesPage() {
     if (activeSector !== 'All') {
       list = list.filter((c) => c.sector_primary === activeSector)
     }
+    if (activeType) {
+      list = list.filter((c) => c.ownership_type === activeType)
+    }
     list.sort((a, b) => {
       if (sortBy === 'country') return (a.country || '').localeCompare(b.country || '')
       if (sortBy === 'sector') return (a.sector_primary || '').localeCompare(b.sector_primary || '')
       return a.company_name.localeCompare(b.company_name)
     })
     return list
-  }, [companies, search, activeSector, sortBy])
+  }, [companies, search, activeSector, activeType, sortBy])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -174,7 +190,7 @@ export default function CompaniesPage() {
       </div>
 
       {/* Sector pills — built from live data */}
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: activeType ? '8px' : '1.25rem' }}>
         {sectorFilters.map((s) => (
           <button
             key={s}
@@ -196,6 +212,33 @@ export default function CompaniesPage() {
           </button>
         ))}
       </div>
+
+      {/* Active type filter badge */}
+      {activeType && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.25rem' }}>
+          <span style={{ fontSize: 11, color: '#6B7280', letterSpacing: '0.05em', fontWeight: 500 }}>FILTERED BY TYPE:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '4px 10px',
+            fontSize: 12,
+            fontWeight: 500,
+            borderRadius: 20,
+            border: '1px solid #1A1814',
+            background: '#1A1814',
+            color: '#F9FAFB',
+          }}>
+            {activeType}
+            <button
+              onClick={() => { setActiveType(null); setPage(1) }}
+              style={{ background: 'none', border: 'none', color: '#F9FAFB', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 14, opacity: 0.7 }}
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Results count */}
       <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
