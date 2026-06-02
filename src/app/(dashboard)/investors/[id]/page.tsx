@@ -21,6 +21,42 @@ function timeAgo(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
+function formatAmount(amount: number | null): string {
+  if (!amount) return "—";
+  if (amount >= 1_000_000_000) {
+    const val = amount / 1_000_000_000;
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}B`;
+  }
+  if (amount >= 1_000_000) {
+    const val = amount / 1_000_000;
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}M`;
+  }
+  if (amount >= 1_000) {
+    const val = amount / 1_000;
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}K`;
+  }
+  return `$${amount}`;
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+type DealRow = {
+  id: string;
+  stage: string | null;
+  amount_usd: number | null;
+  announcement_date: string | null;
+  companies: { company_name: string; slug: string | null } | null;
+  role: "Lead" | "Co-investor";
+};
+
 export default async function InvestorProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -42,6 +78,58 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
   if (error || !investor) notFound();
 
+  // Fetch lead deals
+  const { data: leadDeals } = await supabase
+    .from("deals")
+    .select("id, stage, amount_usd, announcement_date, companies(company_name, slug)")
+    .eq("lead_investor_id", investor.id)
+    .order("announcement_date", { ascending: false, nullsFirst: false });
+
+  // Fetch co-investor deal IDs
+  const { data: coInvestorLinks } = await supabase
+    .from("deal_co_investors")
+    .select("deal_id")
+    .eq("investor_id", investor.id);
+
+  let coDeals: DealRow[] = [];
+  if (coInvestorLinks && coInvestorLinks.length > 0) {
+    const dealIds = coInvestorLinks.map((l: { deal_id: string }) => l.deal_id);
+    const { data: coDealsRaw } = await supabase
+      .from("deals")
+      .select("id, stage, amount_usd, announcement_date, companies(company_name, slug)")
+      .in("id", dealIds)
+      .order("announcement_date", { ascending: false, nullsFirst: false });
+    coDeals = (coDealsRaw || []).map((d) => ({ ...d, role: "Co-investor" as const, companies: (d.companies as { company_name: string; slug: string | null } | null) }));
+  }
+
+  const allDeals: DealRow[] = [
+    ...(leadDeals || []).map((d) => ({ ...d, role: "Lead" as const, companies: (d.companies as { company_name: string; slug: string | null } | null) })),
+    ...coDeals,
+  ].sort((a, b) => {
+    if (!a.announcement_date) return 1;
+    if (!b.announcement_date) return -1;
+    return new Date(b.announcement_date).getTime() - new Date(a.announcement_date).getTime();
+  });
+
+  // Summary stats
+  const totalDeals = allDeals.length;
+  const totalDeployed = allDeals.reduce((sum, d) => sum + (d.amount_usd || 0), 0);
+  const dealsWithAmount = allDeals.filter((d) => d.amount_usd);
+  const avgDealSize = dealsWithAmount.length > 0 ? totalDeployed / dealsWithAmount.length : 0;
+  const latestDeal = allDeals.find((d) => d.announcement_date);
+
+  // Group by year for chart
+  const byYear: Record<string, number> = {};
+  for (const d of allDeals) {
+    if (d.announcement_date && d.amount_usd) {
+      const year = new Date(d.announcement_date).getFullYear().toString();
+      byYear[year] = (byYear[year] || 0) + d.amount_usd;
+    }
+  }
+  const chartYears = Object.keys(byYear).sort();
+  const chartAmounts = chartYears.map((y) => Math.round(byYear[y] / 1_000_000));
+
+  // Related news
   const { data: relatedNews } = await supabase
     .from("news_articles")
     .select("id, title, source, source_url, created_at, source_name")
@@ -49,19 +137,13 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
     .order("created_at", { ascending: false })
     .limit(5);
 
+  // Related investors
   const { data: relatedInvestors } = await supabase
     .from("investors")
     .select("id, investor_name, investor_type, hq_country, slug")
     .eq("investor_type", investor.investor_type)
     .neq("id", investor.id)
     .limit(5);
-
-  const { data: deals } = await supabase
-    .from("deals")
-    .select("*")
-    .or(`lead_investor_id.eq.${investor.id},co_investor_ids.cs.{${investor.id}}`)
-    .order("deal_date", { ascending: false })
-    .limit(10);
 
   const sectionLabel: React.CSSProperties = {
     fontSize: "11px",
@@ -96,6 +178,16 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
     investor.hq_city && { label: investor.hq_city },
   ].filter(Boolean) as { label: string }[];
 
+  const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
+    "Seed":     { bg: "#EAF3DE", text: "#3B6D11" },
+    "Series A": { bg: "#E6F1FB", text: "#185FA5" },
+    "Series B": { bg: "#EEEDFE", text: "#534AB7" },
+    "Series C": { bg: "#FAEEDA", text: "#633806" },
+    "Growth":   { bg: "#F3E8FF", text: "#6B21A8" },
+    "Public":   { bg: "#F3F4F6", text: "#374151" },
+    "Acquired": { bg: "#FBEAF0", text: "#72243E" },
+  };
+
   return (
     <div style={{
       display: "grid",
@@ -127,9 +219,7 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
           </h1>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
             {pills.map((pill) => (
-              <span key={pill.label} style={pillStyle}>
-                {pill.label}
-              </span>
+              <span key={pill.label} style={pillStyle}>{pill.label}</span>
             ))}
           </div>
         </div>
@@ -207,39 +297,127 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
         {/* 04 — DEAL HISTORY */}
         <div>
           <div style={sectionLabel}>04 — DEAL HISTORY</div>
-          {deals && deals.length > 0 ? (
-            <div>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "0 16px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
-                {["Company", "Round", "Amount", "Date"].map((col) => (
-                  <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase", color: "#6B7280", fontWeight: 600 }}>
-                    {col}
-                  </span>
+
+          {allDeals.length > 0 ? (
+            <>
+              {/* Summary strip */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "32px" }}>
+                {[
+                  { label: "DEALS", value: totalDeals.toString() },
+                  { label: "TOTAL DEPLOYED", value: formatAmount(totalDeployed) },
+                  { label: "AVG DEAL SIZE", value: formatAmount(avgDealSize) },
+                  { label: "LATEST DEAL", value: latestDeal ? formatDateShort(latestDeal.announcement_date) : "—" },
+                ].map((s) => (
+                  <div key={s.label} style={{ background: "rgba(26,24,20,0.03)", borderRadius: "6px", padding: "14px 16px" }}>
+                    <div style={{ fontSize: "10px", letterSpacing: "0.06em", color: "rgba(26,24,20,0.38)", fontWeight: 500, marginBottom: "4px" }}>{s.label}</div>
+                    <div style={{ fontSize: "20px", fontFamily: "var(--font-lora)", fontWeight: 400, color: "#1A1814" }}>{s.value}</div>
+                  </div>
                 ))}
               </div>
-              {deals.map((deal: {
-                id: string;
-                company_name?: string;
-                round_type?: string;
-                amount?: string | number;
-                deal_date?: string;
-                company_id?: string;
-              }) => (
-                <div key={deal.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "0 16px", padding: "12px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#1A1814" }}>
-                    {deal.company_id ? (
-                      <Link href={`/companies/${deal.company_id}`} style={{ color: "#1A1814", textDecoration: "none", borderBottom: "0.5px solid rgba(26,24,20,0.25)" }}>
-                        {deal.company_name ?? "—"}
-                      </Link>
-                    ) : (deal.company_name ?? "—")}
-                  </span>
-                  <span style={{ fontSize: "12px", color: "#374151" }}>{deal.round_type ?? "—"}</span>
-                  <span style={{ fontSize: "12px", color: "#374151" }}>{deal.amount ?? "—"}</span>
-                  <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.4)" }}>
-                    {deal.deal_date ? new Date(deal.deal_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "—"}
-                  </span>
+
+              {/* Bar chart */}
+              {chartYears.length > 0 && (
+                <div style={{ marginBottom: "32px" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.07em", color: "rgba(26,24,20,0.35)", fontWeight: 500, marginBottom: "12px" }}>DEAL VOLUME BY YEAR</div>
+                  <div style={{ position: "relative", height: "140px" }}>
+                    <canvas
+                      id="dealChart"
+                      data-years={JSON.stringify(chartYears)}
+                      data-amounts={JSON.stringify(chartAmounts)}
+                      role="img"
+                      aria-label={`Bar chart of deal volume by year for ${investor.investor_name}`}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </div>
+                  <script
+                    dangerouslySetInnerHTML={{
+                      __html: `
+                        (function() {
+                          function initChart() {
+                            if (typeof Chart === 'undefined') { setTimeout(initChart, 100); return; }
+                            var canvas = document.getElementById('dealChart');
+                            if (!canvas) return;
+                            var years = JSON.parse(canvas.dataset.years || '[]');
+                            var amounts = JSON.parse(canvas.dataset.amounts || '[]');
+                            var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                            var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+                            var textColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)';
+                            new Chart(canvas, {
+                              type: 'bar',
+                              data: {
+                                labels: years,
+                                datasets: [{ label: 'Amount ($M)', data: amounts, backgroundColor: '#3864C8', borderRadius: 3, borderSkipped: false }]
+                              },
+                              options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return ' $' + c.raw + 'M'; } } } },
+                                scales: {
+                                  x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } }, border: { display: false } },
+                                  y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 }, callback: function(v) { return '$' + v + 'M'; } }, border: { display: false } }
+                                }
+                              }
+                            });
+                          }
+                          if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initChart); } else { initChart(); }
+                        })();
+                      `,
+                    }}
+                  />
+                  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Deal table */}
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 90px 90px 110px 100px", gap: "0 12px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
+                {["Company", "Stage", "Amount", "Date", "Role"].map((col) => (
+                  <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#6B7280", fontWeight: 600 }}>{col}</span>
+                ))}
+              </div>
+
+              {allDeals.map((deal) => {
+                const stageStyle = STAGE_COLORS[deal.stage || ""] || { bg: "#F3F4F6", text: "#6B7280" };
+                const companyHref = deal.companies?.slug ? `/companies/${deal.companies.slug}` : null;
+                const isLead = deal.role === "Lead";
+
+                return (
+                  <div key={deal.id} style={{ display: "grid", gridTemplateColumns: "2fr 90px 90px 110px 100px", gap: "0 12px", padding: "12px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#1A1814" }}>
+                      {companyHref ? (
+                        <Link href={companyHref} style={{ color: "#1A1814", textDecoration: "none", borderBottom: "0.5px solid rgba(26,24,20,0.25)" }}>
+                          {deal.companies?.company_name ?? "—"}
+                        </Link>
+                      ) : (deal.companies?.company_name ?? "—")}
+                    </span>
+                    <span>
+                      {deal.stage ? (
+                        <span style={{ display: "inline-block", padding: "2px 8px", fontSize: "11px", fontWeight: 600, borderRadius: "3px", background: stageStyle.bg, color: stageStyle.text, whiteSpace: "nowrap" as const }}>
+                          {deal.stage}
+                        </span>
+                      ) : <span style={{ color: "rgba(26,24,20,0.25)", fontSize: "13px" }}>—</span>}
+                    </span>
+                    <span style={{ fontSize: "13px", color: deal.amount_usd ? "#1A1814" : "rgba(26,24,20,0.25)" }}>
+                      {formatAmount(deal.amount_usd)}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.4)" }}>
+                      {formatDate(deal.announcement_date)}
+                    </span>
+                    <span>
+                      <span style={{
+                        display: "inline-block",
+                        padding: "2px 8px",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        borderRadius: "3px",
+                        background: isLead ? "#E6F1FB" : "#EEEDFE",
+                        color: isLead ? "#185FA5" : "#534AB7",
+                      }}>
+                        {deal.role}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </>
           ) : (
             <div style={{ padding: "32px", border: "0.5px solid rgba(26,24,20,0.08)", borderRadius: "6px", textAlign: "center" }}>
               <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", marginBottom: "4px" }}>No deal history yet</div>
@@ -251,98 +429,52 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
       </div>
 
       {/* ── RIGHT SIDEBAR ── */}
-      <div style={{
-        padding: "48px 24px",
-        background: "#FAFAFA",
-        display: "flex",
-        flexDirection: "column",
-        gap: "36px",
-      }}>
+      <div style={{ padding: "48px 24px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: "36px" }}>
 
         {/* Related News */}
         <div>
-          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>
-            RELATED NEWS
-          </div>
-          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>
-            Recent articles mentioning {investor.investor_name}
-          </div>
+          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>RELATED NEWS</div>
+          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>Recent articles mentioning {investor.investor_name}</div>
           {relatedNews && relatedNews.length > 0 ? (
             <div>
-              {relatedNews.map((article: {
-                id: number;
-                title: string;
-                source: string;
-                source_url: string;
-                created_at: string;
-                source_name: string | null;
-              }) => (
+              {relatedNews.map((article: { id: number; title: string; source: string; source_url: string; created_at: string; source_name: string | null }) => (
                 <div key={article.id} style={{ paddingBottom: "14px", marginBottom: "14px", borderBottom: "0.5px solid rgba(26,24,20,0.08)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "3px", background: "rgba(26,24,20,0.05)", color: "rgba(26,24,20,0.45)", border: "0.5px solid rgba(26,24,20,0.1)" }}>
                       {article.source_name ?? article.source}
                     </span>
-                    <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.3)", marginLeft: "auto" }}>
-                      {timeAgo(article.created_at)}
-                    </span>
+                    <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.3)", marginLeft: "auto" }}>{timeAgo(article.created_at)}</span>
                   </div>
-                  <a
-                    href={article.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: "12px", lineHeight: 1.5, color: "#1A1814", textDecoration: "none", display: "block" }}
-                  >
+                  <a href={article.source_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", lineHeight: 1.5, color: "#1A1814", textDecoration: "none", display: "block" }}>
                     {article.title}
                   </a>
                 </div>
               ))}
-              <Link href="/resources/rundown" style={{ fontSize: "12px", color: "#3864C8", textDecoration: "none" }}>
-                View all in The Rundown →
-              </Link>
+              <Link href="/resources/rundown" style={{ fontSize: "12px", color: "#3864C8", textDecoration: "none" }}>View all in The Rundown →</Link>
             </div>
           ) : (
-            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>
-              No recent articles found
-            </div>
+            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>No recent articles found</div>
           )}
         </div>
 
         {/* Related Investors */}
         <div>
-          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>
-            RELATED INVESTORS
-          </div>
-          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>
-            {investor.investor_type ?? "Same type"}
-          </div>
+          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>RELATED INVESTORS</div>
+          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>{investor.investor_type ?? "Same type"}</div>
           {relatedInvestors && relatedInvestors.length > 0 ? (
             <div>
-              {relatedInvestors.map((inv: {
-                id: string;
-                investor_name: string;
-                investor_type: string | null;
-                hq_country: string | null;
-                slug: string | null;
-              }) => (
-                <Link
-                  key={inv.id}
-                  href={`/investors/${inv.slug ?? inv.id}`}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "0.5px solid rgba(26,24,20,0.08)", textDecoration: "none" }}
-                >
+              {relatedInvestors.map((inv: { id: string; investor_name: string; investor_type: string | null; hq_country: string | null; slug: string | null }) => (
+                <Link key={inv.id} href={`/investors/${inv.slug ?? inv.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "0.5px solid rgba(26,24,20,0.08)", textDecoration: "none" }}>
                   <div>
                     <div style={{ fontSize: "13px", color: "#1A1814" }}>{inv.investor_name}</div>
-                    {inv.hq_country && (
-                      <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.38)", marginTop: "2px" }}>{inv.hq_country}</div>
-                    )}
+                    {inv.hq_country && <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.38)", marginTop: "2px" }}>{inv.hq_country}</div>}
                   </div>
                   <span style={{ fontSize: "14px", color: "rgba(26,24,20,0.3)" }}>›</span>
                 </Link>
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>
-              No related investors found
-            </div>
+            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>No related investors found</div>
           )}
         </div>
 
