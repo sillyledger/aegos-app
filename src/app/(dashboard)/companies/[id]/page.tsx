@@ -315,7 +315,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
                   </a>
                 </div>
               ))}
-              <Link href="/rundown" style={{ fontSize: "12px", color: "#3864C8", textDecoration: "none" }}>
+              <Link href="/resources/rundown" style={{ fontSize: "12px", color: "#3864C8", textDecoration: "none" }}>
                 View all in The Rundown →
               </Link>
             </div>
