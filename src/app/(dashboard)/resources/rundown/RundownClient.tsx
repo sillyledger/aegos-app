@@ -45,13 +45,13 @@ type FeedItem = {
   title: string;
   source_url: string;
   source: string;
+  source_name: string | null;
   description: string | null;
   relevance_score: number | null;
   approved_at: string | null;
   created_at: string;
 };
 
-// Strip HTML tags and decode common entities
 function stripHtml(str: string): string {
   return str
     .replace(/<[^>]+>/g, '')
@@ -60,12 +60,20 @@ function stripHtml(str: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
     .trim();
 }
 
-// Strip trailing source attribution like " - TechCrunch" or " – Crunchbase News"
 function cleanTitle(title: string): string {
   return title.replace(/\s[–\-]\s[^–\-]{3,50}$/, '').trim();
+}
+
+// Use source_name (real publisher) if available, else fall back to source label
+function displaySource(item: FeedItem): string {
+  if (item.source_name && item.source_name.trim().length > 0) {
+    return item.source_name.trim();
+  }
+  return SOURCE_LABEL_MAP[item.source] ?? item.source;
 }
 
 function timeAgo(dateStr: string): string {
@@ -120,14 +128,17 @@ export default function RundownClient() {
   const rest = items.slice(1);
 
   const sourceCounts: Record<string, number> = {};
-  items.forEach(i => { sourceCounts[i.source] = (sourceCounts[i.source] ?? 0) + 1; });
+  items.forEach(i => {
+    const label = displaySource(i);
+    sourceCounts[label] = (sourceCounts[label] ?? 0) + 1;
+  });
   const maxCount = Math.max(...Object.values(sourceCounts), 1);
 
-  const srcBadge = (src: string) => {
-    const style = SOURCE_BADGE[src] ?? { background: '#F3F4F6', color: '#6B7280' };
+  const srcBadge = (item: FeedItem) => {
+    const style = SOURCE_BADGE[item.source] ?? { background: '#F3F4F6', color: '#6B7280' };
     return (
       <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, ...style }}>
-        {SOURCE_LABEL_MAP[src] ?? src}
+        {displaySource(item)}
       </span>
     );
   };
@@ -152,12 +163,11 @@ export default function RundownClient() {
 
           {/* Main feed */}
           <div>
-            {/* Top story */}
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Top story</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  {srcBadge(featured.source)}
+                  {srcBadge(featured)}
                 </div>
                 <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                   <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 8, cursor: 'pointer' }}>
@@ -171,7 +181,7 @@ export default function RundownClient() {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
-                  <span>{SOURCE_LABEL_MAP[featured.source] ?? featured.source}</span>
+                  <span>{displaySource(featured)}</span>
                   <span>·</span>
                   <span>{timeAgo(featured.approved_at ?? featured.created_at)}</span>
                   <span>·</span>
@@ -182,7 +192,6 @@ export default function RundownClient() {
               </div>
             )}
 
-            {/* Latest stories */}
             <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: '1rem' }}>Latest stories</div>
             <div>
               {rest.map((item, i) => (
@@ -193,7 +202,7 @@ export default function RundownClient() {
                     </div>
                   </a>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
-                    {srcBadge(item.source)}
+                    {srcBadge(item)}
                     <span>·</span>
                     <span>{timeAgo(item.approved_at ?? item.created_at)}</span>
                     <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>↗</a>
@@ -202,7 +211,6 @@ export default function RundownClient() {
               ))}
             </div>
 
-            {/* Pagination */}
             <div style={{ display: 'flex', gap: 6, marginTop: '1.5rem' }}>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
                 <button
@@ -237,17 +245,17 @@ export default function RundownClient() {
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid #E5E7EB' }}>
                 Sources · this page
               </div>
-              {Object.entries(sourceCounts).map(([src, count]) => (
-                <div key={src}>
+              {Object.entries(sourceCounts).map(([label, count]) => (
+                <div key={label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: SOURCE_DOT[src] ?? '#9CA3AF', display: 'inline-block' }} />
-                      {SOURCE_LABEL_MAP[src] ?? src}
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#185FA5', display: 'inline-block' }} />
+                      {label}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 500, color: '#1A1814' }}>{count}</span>
                   </div>
                   <div style={{ height: 3, background: '#E5E7EB', borderRadius: 2, marginBottom: 6 }}>
-                    <div style={{ height: 3, borderRadius: 2, background: SOURCE_DOT[src] ?? '#9CA3AF', width: `${Math.round((count / maxCount) * 100)}%` }} />
+                    <div style={{ height: 3, borderRadius: 2, background: '#185FA5', width: `${Math.round((count / maxCount) * 100)}%` }} />
                   </div>
                 </div>
               ))}
