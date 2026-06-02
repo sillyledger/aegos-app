@@ -280,7 +280,8 @@ export default function RundownClient() {
               onChange={e => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
-              placeholder="Search articles…"
+              autoComplete="off"
+placeholder="Search articles…"
               style={{
                 flex: 1, border: 'none', outline: 'none', fontSize: 14,
                 color: '#1A1814', background: 'transparent',
