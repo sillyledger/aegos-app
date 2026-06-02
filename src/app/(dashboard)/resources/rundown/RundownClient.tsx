@@ -8,9 +8,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const REGIONS = ['All', 'Southeast Asia', 'MENA', 'GCC', 'South Asia', 'Global'];
-
 const SOURCE_LABEL_MAP: Record<string, string> = {
+  google_news:     'Google News',
+  techcrunch:      'TechCrunch',
   rss_feed:        'RSS Feed',
   hacker_news:     'Hacker News',
   product_hunt:    'Product Hunt',
@@ -24,6 +24,8 @@ type BadgeStyle = {
 };
 
 const SOURCE_BADGE: Record<string, BadgeStyle> = {
+  google_news:     { background: '#E6F1FB', color: '#185FA5' },
+  techcrunch:      { background: '#FAECE7', color: '#993C1D' },
   rss_feed:        { background: '#E6F1FB', color: '#185FA5' },
   hacker_news:     { background: '#FAEEDA', color: '#854F0B' },
   product_hunt:    { background: '#FAECE7', color: '#993C1D' },
@@ -32,6 +34,8 @@ const SOURCE_BADGE: Record<string, BadgeStyle> = {
 };
 
 const SOURCE_DOT: Record<string, string> = {
+  google_news:     '#185FA5',
+  techcrunch:      '#D85A30',
   rss_feed:        '#185FA5',
   hacker_news:     '#EF9F27',
   product_hunt:    '#D85A30',
@@ -42,10 +46,11 @@ const SOURCE_DOT: Record<string, string> = {
 type FeedItem = {
   id: string;
   title: string;
-  url: string;
+  source_url: string;
   source: string;
-  region: string | null;
-  published_at: string | null;
+  description: string | null;
+  relevance_score: number | null;
+  approved_at: string | null;
   created_at: string;
 };
 
@@ -65,37 +70,30 @@ const PAGE_SIZE = 10;
 export default function RundownClient() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [region, setRegion] = useState('All');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [now, setNow] = useState('');
 
   useEffect(() => {
     const d = new Date();
-    setNow(d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+    setNow(d.toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short',
+      year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }));
   }, []);
 
   useEffect(() => {
-    setPage(1);
-  }, [region]);
-
-  useEffect(() => {
     fetchItems();
-  }, [region, page]);
+  }, [page]);
 
   async function fetchItems() {
     setLoading(true);
-    let query = supabase
-      .from('feed_items')
+    const { data, count, error } = await supabase
+      .from('news_articles')
       .select('*', { count: 'exact' })
-      .order('published_at', { ascending: false })
+      .order('approved_at', { ascending: false })
       .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-    if (region !== 'All') {
-      query = query.eq('region', region);
-    }
-
-    const { data, count, error } = await query;
     if (!error && data) {
       setItems(data as FeedItem[]);
       setTotal(count ?? 0);
@@ -113,26 +111,6 @@ export default function RundownClient() {
   });
   const maxCount = Math.max(...Object.values(sourceCounts), 1);
 
-  const pill = (label: string, active: boolean, onClick: () => void) => (
-    <button
-      key={label}
-      onClick={onClick}
-      style={{
-        fontSize: 13,
-        padding: '6px 16px',
-        borderRadius: 99,
-        border: active ? 'none' : '0.5px solid #E5E7EB',
-        background: active ? '#1A1814' : 'transparent',
-        color: active ? '#fff' : '#374151',
-        cursor: 'pointer',
-        fontFamily: 'var(--font-jakarta), sans-serif',
-        whiteSpace: 'nowrap' as const,
-      }}
-    >
-      {label}
-    </button>
-  );
-
   const srcBadge = (src: string) => {
     const style = SOURCE_BADGE[src] ?? { background: '#F3F4F6', color: '#6B7280' };
     return (
@@ -144,13 +122,7 @@ export default function RundownClient() {
 
   return (
     <div>
-      {/* Region filter only */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.75rem' }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#9CA3AF', minWidth: 52 }}>Region</span>
-        {REGIONS.map(r => pill(r, region === r, () => setRegion(r)))}
-      </div>
-
-      {/* Divider + live */}
+      {/* Divider + live indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '0.5px solid #E5E7EB', paddingTop: 16, marginBottom: '1.75rem' }}>
         <span style={{ fontSize: 11, color: '#9CA3AF' }}>{total} articles</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
@@ -168,69 +140,68 @@ export default function RundownClient() {
 
           {/* Main feed */}
           <div>
+            {/* Featured / top story */}
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Top story</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   {srcBadge(featured.source)}
-                  {featured.region && (
-                    <span style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#185FA5', fontWeight: 500 }}>
-                      {featured.region}
-                    </span>
-                  )}
                 </div>
-                <a href={featured.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                  <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 12, cursor: 'pointer' }}>
+                <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 8, cursor: 'pointer' }}>
                     {featured.title}
                   </div>
                 </a>
+                {featured.description && (
+                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginBottom: 10 }}>
+                    {featured.description.slice(0, 180)}{featured.description.length > 180 ? '…' : ''}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
                   <span>{SOURCE_LABEL_MAP[featured.source] ?? featured.source}</span>
                   <span>·</span>
-                  <span>{timeAgo(featured.published_at ?? featured.created_at)}</span>
+                  <span>{timeAgo(featured.approved_at ?? featured.created_at)}</span>
                   <span>·</span>
-                  <a href={featured.url} target="_blank" rel="noopener noreferrer" style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>
+                  <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>
                     Read source ↗
                   </a>
                 </div>
               </div>
             )}
 
+            {/* Rest of feed */}
             <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: '1rem' }}>Latest stories</div>
             <div>
               {rest.map((item, i) => (
                 <div key={item.id} style={{ padding: '13px 0', borderBottom: '0.5px solid #E5E7EB', borderTop: i === 0 ? '0.5px solid #E5E7EB' : 'none' }}>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1814', lineHeight: 1.4, marginBottom: 6 }}>
                       {item.title}
                     </div>
                   </a>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
                     {srcBadge(item.source)}
-                    <span>{SOURCE_LABEL_MAP[item.source] ?? item.source}</span>
                     <span>·</span>
-                    <span>{timeAgo(item.published_at ?? item.created_at)}</span>
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>↗</a>
+                    <span>{timeAgo(item.approved_at ?? item.created_at)}</span>
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>↗</a>
                   </div>
                 </div>
               ))}
             </div>
 
+            {/* Pagination */}
             <div style={{ display: 'flex', gap: 6, marginTop: '1.5rem' }}>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
                 <button
                   key={n}
                   onClick={() => setPage(n)}
                   style={{
-                    fontSize: 12,
-                    padding: '5px 11px',
+                    fontSize: 12, padding: '5px 11px',
                     border: page === n ? '0.5px solid #1A1814' : '0.5px solid #E5E7EB',
-                    borderRadius: 4,
-                    background: 'transparent',
+                    borderRadius: 4, background: 'transparent',
                     color: page === n ? '#1A1814' : '#6B7280',
                     fontWeight: page === n ? 500 : 400,
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-jakarta), sans-serif',
+                    cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif',
                   }}
                 >
                   {n}
@@ -272,7 +243,7 @@ export default function RundownClient() {
             <div style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 8, padding: '1rem 1.25rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>About The Rundown</div>
               <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
-                A live feed of company intelligence signals pulled from tracked sources across Southeast Asia and MENA. Updated continuously as new records are approved.
+                A live feed of company intelligence signals pulled from tracked sources globally. Updated continuously as new records are approved.
               </div>
             </div>
           </div>
