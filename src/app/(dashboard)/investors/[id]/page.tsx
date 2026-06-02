@@ -24,11 +24,21 @@ function timeAgo(dateStr: string): string {
 export default async function InvestorProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const { data: investor, error } = await supabase
+  let { data: investor, error } = await supabase
     .from("investors")
     .select("*")
-    .eq("id", id)
+    .eq("slug", id)
     .single();
+
+  if (error || !investor) {
+    const fallback = await supabase
+      .from("investors")
+      .select("*")
+      .eq("id", id)
+      .single();
+    investor = fallback.data;
+    error = fallback.error;
+  }
 
   if (error || !investor) notFound();
 
@@ -41,7 +51,7 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
   const { data: relatedInvestors } = await supabase
     .from("investors")
-    .select("id, investor_name, investor_type, hq_country")
+    .select("id, investor_name, investor_type, hq_country, slug")
     .eq("investor_type", investor.investor_type)
     .neq("id", investor.id)
     .limit(5);
@@ -78,7 +88,6 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
     color: "#374151",
     whiteSpace: "nowrap",
     background: "transparent",
-    textDecoration: "none",
   };
 
   const pills = [
@@ -195,12 +204,11 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
         <div style={divider} />
 
-        {/* 04 — FUNDING HISTORY */}
+        {/* 04 — DEAL HISTORY */}
         <div>
           <div style={sectionLabel}>04 — DEAL HISTORY</div>
           {deals && deals.length > 0 ? (
             <div>
-              {/* Table header */}
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: "0 16px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
                 {["Company", "Round", "Amount", "Date"].map((col) => (
                   <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase", color: "#6B7280", fontWeight: 600 }}>
@@ -314,10 +322,11 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                 investor_name: string;
                 investor_type: string | null;
                 hq_country: string | null;
+                slug: string | null;
               }) => (
                 <Link
                   key={inv.id}
-                  href={`/investors/${inv.id}`}
+                  href={`/investors/${inv.slug ?? inv.id}`}
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "0.5px solid rgba(26,24,20,0.08)", textDecoration: "none" }}
                 >
                   <div>
