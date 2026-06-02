@@ -223,7 +223,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
       {/* ── RIGHT SIDEBAR PANEL ── */}
       <div style={{
         padding: "48px 24px",
-        background: "#FFFFFF",
+        background: "#FAFAFA",
         display: "flex",
         flexDirection: "column",
         gap: "36px",
