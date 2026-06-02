@@ -38,9 +38,18 @@ function getStageStyle(stage: string | null) {
 
 function formatAmount(amount: number | null): string {
   if (!amount) return '—'
-  if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(1)}B`
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(0)}K`
+  if (amount >= 1_000_000_000) {
+    const val = amount / 1_000_000_000
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}B`
+  }
+  if (amount >= 1_000_000) {
+    const val = amount / 1_000_000
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}M`
+  }
+  if (amount >= 1_000) {
+    const val = amount / 1_000
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}K`
+  }
   return `$${amount}`
 }
 
@@ -103,7 +112,6 @@ function DealsInner() {
     list.sort((a, b) => {
       if (sortBy === 'amount') return (b.amount_usd || 0) - (a.amount_usd || 0)
       if (sortBy === 'company') return (a.companies?.company_name || '').localeCompare(b.companies?.company_name || '')
-      // date — nulls last
       if (!a.announcement_date && !b.announcement_date) return 0
       if (!a.announcement_date) return 1
       if (!b.announcement_date) return -1
@@ -200,12 +208,8 @@ function DealsInner() {
       ) : (
         paginated.map((deal) => {
           const stageStyle = getStageStyle(deal.stage)
-          const companyHref = deal.companies?.slug
-            ? `/companies/${deal.companies.slug}`
-            : null
-          const investorHref = deal.investors?.slug
-            ? `/investors/${deal.investors.slug}`
-            : null
+          const companyHref = deal.companies?.slug ? `/companies/${deal.companies.slug}` : null
+          const investorHref = deal.investors?.slug ? `/investors/${deal.investors.slug}` : null
 
           return (
             <div
@@ -214,12 +218,11 @@ function DealsInner() {
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.8)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
             >
-              {/* Company */}
               <div>
                 {companyHref ? (
-                  <a href={companyHref} style={{ fontSize: 14, fontWeight: 600, color: '#1A1814', textDecoration: 'none' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderBottom = '0.5px solid #1A1814')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderBottom = 'none')}>
+                  <a href={companyHref} style={{ fontSize: 14, fontWeight: 600, color: '#1A1814', textDecoration: 'none', borderBottom: '0.5px solid transparent' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderBottomColor = '#1A1814')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderBottomColor = 'transparent')}>
                     {deal.companies?.company_name ?? '—'}
                   </a>
                 ) : (
@@ -229,7 +232,6 @@ function DealsInner() {
                 )}
               </div>
 
-              {/* Stage */}
               <span>
                 {deal.stage ? (
                   <span style={{ display: 'inline-block', padding: '3px 8px', fontSize: 11, fontWeight: 600, borderRadius: 3, background: stageStyle.bg, color: stageStyle.text, whiteSpace: 'nowrap' }}>
@@ -238,23 +240,20 @@ function DealsInner() {
                 ) : <span style={{ color: '#9CA3AF', fontSize: 13 }}>—</span>}
               </span>
 
-              {/* Amount */}
               <span style={{ fontSize: 13, fontWeight: 500, color: deal.amount_usd ? '#1A1814' : '#9CA3AF' }}>
                 {formatAmount(deal.amount_usd)}
               </span>
 
-              {/* Date */}
               <span style={{ fontSize: 13, color: deal.announcement_date ? '#374151' : '#9CA3AF' }}>
                 {formatDate(deal.announcement_date)}
               </span>
 
-              {/* Lead Investor */}
               <span>
                 {deal.investors ? (
                   investorHref ? (
-                    <a href={investorHref} style={{ fontSize: 13, color: '#1A1814', textDecoration: 'none' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.borderBottom = '0.5px solid #1A1814')}
-                      onMouseLeave={(e) => (e.currentTarget.style.borderBottom = 'none')}>
+                    <a href={investorHref} style={{ fontSize: 13, color: '#1A1814', textDecoration: 'none', borderBottom: '0.5px solid transparent' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderBottomColor = '#1A1814')}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderBottomColor = 'transparent')}>
                       {deal.investors.investor_name}
                     </a>
                   ) : (
