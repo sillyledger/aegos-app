@@ -1,25 +1,21 @@
 import type { Metadata } from "next";
-import { Lora, Public_Sans } from "next/font/google";
+import { Lora, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-
 const lora = Lora({
   subsets: ["latin"],
   variable: "--font-lora",
   weight: ["400", "500"],
   style: ["normal", "italic"],
 });
-
-const publicSans = Public_Sans({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
-  weight: ["300", "400", "500"],
+  weight: ["300", "400", "500", "600"],
 });
-
 export const metadata: Metadata = {
   title: "Aegos Intel",
   description: "Company Intelligence Platform",
 };
-
 export default function RootLayout({
   children,
 }: {
@@ -27,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${lora.variable} ${publicSans.variable}`}>
+      <body className={`${lora.variable} ${jakarta.variable}`}>
         {children}
       </body>
     </html>
