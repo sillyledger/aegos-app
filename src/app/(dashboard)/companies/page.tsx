@@ -219,7 +219,8 @@ function CompaniesInner() {
   }
 
   return (
-    <div style={{ padding: '2rem 2.5rem', background: '#F9FAFB', minHeight: '100vh', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+    <div style={{ padding: '2rem 2.5rem', background: '#F9FAFB', minHeight: '100vh', fontFamily: '"Public Sans", var(--font-jakarta), sans-serif' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500&display=swap');`}</style>
 
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
@@ -229,7 +230,7 @@ function CompaniesInner() {
         <h1 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#1A1814', lineHeight: 1.2, margin: 0 }}>
           Companies
         </h1>
-        <div style={{ fontSize: 14, color: '#374151', marginTop: 5 }}>
+        <div style={{ fontSize: 15, fontWeight: 350, color: '#374151', marginTop: 5 }}>
           {loading ? 'Loading…' : error ? `Error: ${error}` : `${companies.length} companies tracked`}
         </div>
       </div>
@@ -422,7 +423,7 @@ function CompaniesInner() {
       )}
 
       {/* Results count */}
-      <div style={{ fontSize: 14, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
+      <div style={{ fontSize: 15, fontWeight: 350, color: '#6B7280', marginBottom: 6 }}>
         {!loading && filtered.length > 0 && `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} companies`}
       </div>
 
@@ -457,26 +458,26 @@ function CompaniesInner() {
                 <div style={{ width: 28, height: 28, borderRadius: 5, background: logoColor.bg, color: logoColor.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                   {company.company_name.charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1814' }}>{company.company_name}</span>
+                <span style={{ fontSize: 17, fontWeight: 350, color: '#1A1814' }}>{company.company_name}</span>
               </div>
 
               <span>
                 {company.sector_primary ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 11, fontSize: 12, fontWeight: 500, background: '#EFF6FF', color: '#1A1814', border: '0.5px solid #BFDBFE', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 11, fontSize: 13, fontWeight: 400, background: '#EFF6FF', color: '#1A1814', border: '0.5px solid #BFDBFE', whiteSpace: 'nowrap' }}>
                     {company.sector_primary}
                   </span>
                 ) : <span style={{ color: '#9CA3AF', fontSize: 13 }}>—</span>}
               </span>
 
-              <span style={{ fontSize: 14, color: company.ownership_type ? '#374151' : '#9CA3AF' }}>
+              <span style={{ fontSize: 15, fontWeight: 350, color: company.ownership_type ? '#374151' : '#9CA3AF' }}>
                 {company.ownership_type || '—'}
               </span>
 
-              <span style={{ fontSize: 14, color: company.country ? '#374151' : '#9CA3AF' }}>
+              <span style={{ fontSize: 15, fontWeight: 350, color: company.country ? '#374151' : '#9CA3AF' }}>
                 {company.country || '—'}
               </span>
 
-              <span style={{ fontSize: 14, color: '#6B7280' }}>
+              <span style={{ fontSize: 15, fontWeight: 350, color: '#6B7280' }}>
                 {company.founding_year || '—'}
               </span>
             </div>
