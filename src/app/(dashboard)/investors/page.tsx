@@ -15,16 +15,6 @@ type Investor = {
 
 const TYPE_FILTERS = ['All', 'VC', 'PE', 'Angel', 'CVC', 'Family Office', 'Accelerator', 'Institutional']
 
-const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  'VC':            { bg: '#EAF3DE', text: '#3B6D11' },
-  'PE':            { bg: '#E6F1FB', text: '#185FA5' },
-  'Angel':         { bg: '#FAEEDA', text: '#633806' },
-  'CVC':           { bg: '#EEEDFE', text: '#534AB7' },
-  'Family Office': { bg: '#FBEAF0', text: '#72243E' },
-  'Accelerator':   { bg: '#FEF9C3', text: '#854D0E' },
-  'Institutional': { bg: '#F1F5F9', text: '#334155' },
-}
-
 const LOGO_COLORS = [
   { bg: '#CECBF6', text: '#3C3489' },
   { bg: '#B5D4F4', text: '#0C447C' },
@@ -40,11 +30,6 @@ function getLogoColor(name: string) {
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return LOGO_COLORS[Math.abs(hash) % LOGO_COLORS.length]
-}
-
-function getTypeStyle(type: string | null) {
-  if (!type) return { bg: '#F3F4F6', text: '#6B7280' }
-  return TYPE_COLORS[type] || { bg: '#F3F4F6', text: '#6B7280' }
 }
 
 function cleanWebsite(url: string | null) {
@@ -118,7 +103,6 @@ export default function InvestorsPage() {
     load()
   }, [load])
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput)
@@ -130,10 +114,10 @@ export default function InvestorsPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: '0.07em',
-    textTransform: 'uppercase',
-    color: '#6B7280',
+    textTransform: 'uppercase' as const,
+    color: '#9CA3AF',
     fontWeight: 600,
   }
 
@@ -141,23 +125,23 @@ export default function InvestorsPage() {
     <div style={{ padding: '2rem 2.5rem', background: '#F9FAFB', minHeight: '100vh', fontFamily: 'var(--font-jakarta), sans-serif' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: '1.75rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7280', marginBottom: 5, fontWeight: 600 }}>
           Investors
         </div>
         <h1 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#1A1814', lineHeight: 1.2, margin: 0 }}>
           Investors
         </h1>
-        <div style={{ fontSize: 13, color: '#374151', marginTop: 5 }}>
+        <div style={{ fontSize: 14, color: '#374151', marginTop: 5 }}>
           {loading ? 'Loading…' : error ? `Error: ${error}` : `${totalCount.toLocaleString()} investors tracked`}
         </div>
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.75rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2.5"
-            style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5"
+            style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
@@ -165,13 +149,13 @@ export default function InvestorsPage() {
             placeholder="Search investors…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            style={{ width: '100%', padding: '7px 0 7px 22px', fontSize: 13, fontWeight: 500, border: 'none', borderBottom: '1.5px solid #E5E7EB', background: 'transparent', color: '#1A1814', outline: 'none', fontFamily: 'inherit' }}
+            style={{ width: '100%', height: 34, padding: '0 12px 0 32px', fontSize: 13, border: '0.5px solid #E5E7EB', borderRadius: 6, background: 'white', color: '#111827', outline: 'none', fontFamily: 'inherit' }}
           />
         </div>
         <select
           value={sortBy}
           onChange={(e) => { setSortBy(e.target.value as typeof sortBy); setPage(1) }}
-          style={{ padding: '6px 10px', fontSize: 12, fontWeight: 500, border: '1px solid #E5E7EB', borderRadius: 5, background: '#F9FAFB', color: '#1A1814', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}
+          style={{ height: 34, padding: '0 10px', fontSize: 12, fontWeight: 500, border: '0.5px solid #E5E7EB', borderRadius: 6, background: 'white', color: '#374151', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}
         >
           <option value="name">Sort: Name A–Z</option>
           <option value="type">Sort: Type</option>
@@ -179,13 +163,20 @@ export default function InvestorsPage() {
         </select>
       </div>
 
-      {/* Type pills */}
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+      {/* Type filter pills */}
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: '1rem' }}>
         {TYPE_FILTERS.map((t) => (
           <button
             key={t}
             onClick={() => { setActiveType(t); setPage(1) }}
-            style={{ padding: '5px 12px', fontSize: 12, fontWeight: activeType === t ? 600 : 500, borderRadius: 20, border: '1px solid', borderColor: activeType === t ? '#1A1814' : '#E5E7EB', background: activeType === t ? '#1A1814' : 'transparent', color: activeType === t ? '#F9FAFB' : '#374151', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{
+              height: 28, padding: '0 12px', fontSize: 12,
+              fontWeight: activeType === t ? 600 : 500,
+              borderRadius: 13, border: '0.5px solid', cursor: 'pointer', fontFamily: 'inherit',
+              borderColor: activeType === t ? '#111827' : '#E5E7EB',
+              background: activeType === t ? '#111827' : 'white',
+              color: activeType === t ? 'white' : '#374151',
+            }}
           >
             {t}
           </button>
@@ -193,14 +184,14 @@ export default function InvestorsPage() {
       </div>
 
       {/* Results count */}
-      <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
+      <div style={{ fontSize: 14, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
         {!loading && totalCount > 0 && (
           `${((page - 1) * PAGE_SIZE + 1).toLocaleString()}–${Math.min(page * PAGE_SIZE, totalCount).toLocaleString()} of ${totalCount.toLocaleString()} investors`
         )}
       </div>
 
       {/* Column headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 120px 1fr', gap: '0 16px', padding: '8px 0', borderBottom: '1.5px solid #E5E7EB' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 100px 140px 1fr', gap: '0 16px', padding: '8px 0', borderBottom: '1.5px solid #E5E7EB' }}>
         {['Investor', 'Type', 'Country', 'Focus Sectors'].map((col) => (
           <span key={col} style={labelStyle}>{col}</span>
         ))}
@@ -216,7 +207,6 @@ export default function InvestorsPage() {
       ) : (
         investors.map((investor) => {
           const logoColor = getLogoColor(investor.investor_name)
-          const typeStyle = getTypeStyle(investor.investor_type)
           const displayUrl = cleanWebsite(investor.website)
           const href = `/investors/${investor.slug ?? investor.id}`
 
@@ -224,23 +214,24 @@ export default function InvestorsPage() {
             <div
               key={investor.id}
               onClick={() => window.location.href = href}
-              style={{ display: 'grid', gridTemplateColumns: '2fr 80px 120px 1fr', gap: '0 16px', padding: '12px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', borderRadius: 4, cursor: 'pointer' }}
+              style={{ display: 'grid', gridTemplateColumns: '2fr 100px 140px 1fr', gap: '0 16px', padding: '13px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', cursor: 'pointer' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.8)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
             >
+              {/* Name + URL */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 6, background: logoColor.bg, color: logoColor.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 5, background: logoColor.bg, color: logoColor.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                   {investor.investor_name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1814' }}>{investor.investor_name}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1814' }}>{investor.investor_name}</div>
                   {displayUrl && (
                     <a
                       href={investor.website!}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      style={{ fontSize: 11, color: '#9CA3AF', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: 220 }}
+                      style={{ fontSize: 12, color: '#9CA3AF', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', maxWidth: 240 }}
                     >
                       {displayUrl}
                     </a>
@@ -248,19 +239,22 @@ export default function InvestorsPage() {
                 </div>
               </div>
 
+              {/* Type — neutral gray pill */}
               <span>
                 {investor.investor_type ? (
-                  <span style={{ display: 'inline-block', padding: '3px 8px', fontSize: 11, fontWeight: 600, borderRadius: 3, background: typeStyle.bg, color: typeStyle.text, whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 11, fontSize: 12, fontWeight: 500, background: '#F3F4F6', color: '#374151', border: '0.5px solid #E5E7EB', whiteSpace: 'nowrap' }}>
                     {investor.investor_type}
                   </span>
-                ) : <span style={{ color: '#9CA3AF', fontSize: 13 }}>—</span>}
+                ) : <span style={{ color: '#9CA3AF', fontSize: 14 }}>—</span>}
               </span>
 
-              <span style={{ fontSize: 13, fontWeight: 500, color: investor.hq_country ? '#1A1814' : '#9CA3AF' }}>
+              {/* Country */}
+              <span style={{ fontSize: 14, color: investor.hq_country ? '#374151' : '#9CA3AF' }}>
                 {investor.hq_country || '—'}
               </span>
 
-              <span style={{ fontSize: 12, color: investor.focus_sectors ? '#374151' : '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {/* Focus sectors */}
+              <span style={{ fontSize: 14, color: investor.focus_sectors ? '#374151' : '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {investor.focus_sectors || '—'}
               </span>
             </div>
