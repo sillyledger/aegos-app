@@ -457,7 +457,7 @@ function CompaniesInner() {
                 <div style={{ width: 28, height: 28, borderRadius: 5, background: logoColor.bg, color: logoColor.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                   {company.company_name.charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontSize: 16, fontWeight: 600, color: '#1A1814' }}>{company.company_name}</span>
+                <span style={{ fontSize: 15, fontWeight: 500, color: '#1A1814' }}>{company.company_name}</span>
               </div>
 
               <span>
