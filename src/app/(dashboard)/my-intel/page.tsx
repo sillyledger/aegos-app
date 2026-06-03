@@ -14,11 +14,10 @@ export default function MyIntelPage() {
         <h1 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#1A1814', lineHeight: 1.2, margin: 0 }}>
           My Intel
         </h1>
-        <div style={{ fontSize: 13, color: '#374151', marginTop: 5 }}>
+        <div style={{ fontSize: 14, color: '#374151', marginTop: 5 }}>
           Your watchlists, research docs, and tracked companies
         </div>
       </div>
-
       <MyIntelClient />
     </div>
   );
