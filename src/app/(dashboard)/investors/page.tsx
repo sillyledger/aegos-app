@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 type Investor = {
@@ -13,7 +13,7 @@ type Investor = {
   slug: string | null
 }
 
-const TYPE_FILTERS = ['All', 'VC', 'PE', 'Angel', 'CVC', 'Family Office']
+const TYPE_FILTERS = ['All', 'VC', 'PE', 'Angel', 'CVC', 'Family Office', 'Accelerator', 'Institutional']
 
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   'VC':            { bg: '#EAF3DE', text: '#3B6D11' },
@@ -21,6 +21,8 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   'Angel':         { bg: '#FAEEDA', text: '#633806' },
   'CVC':           { bg: '#EEEDFE', text: '#534AB7' },
   'Family Office': { bg: '#FBEAF0', text: '#72243E' },
+  'Accelerator':   { bg: '#FEF9C3', text: '#854D0E' },
+  'Institutional': { bg: '#F1F5F9', text: '#334155' },
 }
 
 const LOGO_COLORS = [
@@ -50,59 +52,82 @@ function cleanWebsite(url: string | null) {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '')
 }
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 50
 
 export default function InvestorsPage() {
   const [investors, setInvestors] = useState<Investor[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [activeType, setActiveType] = useState('All')
   const [sortBy, setSortBy] = useState<'name' | 'country' | 'type'>('name')
   const [page, setPage] = useState(1)
 
-  useEffect(() => {
-    async function load() {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { data, error } = await supabase
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const from = (page - 1) * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
+
+      let query = supabase
         .from('investors')
-        .select('id, investor_name, investor_type, hq_country, focus_sectors, website, slug')
-        .order('investor_name', { ascending: true })
+        .select('id, investor_name, investor_type, hq_country, focus_sectors, website, slug', { count: 'exact' })
+
+      if (search.trim()) {
+        query = query.ilike('investor_name', `%${search.trim()}%`)
+      }
+
+      if (activeType !== 'All') {
+        query = query.eq('investor_type', activeType)
+      }
+
+      if (sortBy === 'country') {
+        query = query.order('hq_country', { ascending: true, nullsFirst: false })
+      } else if (sortBy === 'type') {
+        query = query.order('investor_type', { ascending: true, nullsFirst: false })
+      } else {
+        query = query.order('investor_name', { ascending: true })
+      }
+
+      query = query.range(from, to)
+
+      const { data, error, count } = await query
 
       if (error) setError(error.message)
-      else setInvestors(data || [])
-      setLoading(false)
+      else {
+        setInvestors(data || [])
+        setTotalCount(count || 0)
+      }
+    } catch (e: any) {
+      setError(e.message)
     }
+
+    setLoading(false)
+  }, [page, search, activeType, sortBy])
+
+  useEffect(() => {
     load()
-  }, [])
+  }, [load])
 
-  const filtered = useMemo(() => {
-    let list = [...investors]
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter(
-        (i) =>
-          i.investor_name.toLowerCase().includes(q) ||
-          (i.hq_country || '').toLowerCase().includes(q) ||
-          (i.focus_sectors || '').toLowerCase().includes(q)
-      )
-    }
-    if (activeType !== 'All') {
-      list = list.filter((i) => i.investor_type === activeType)
-    }
-    list.sort((a, b) => {
-      if (sortBy === 'country') return (a.hq_country || '').localeCompare(b.hq_country || '')
-      if (sortBy === 'type') return (a.investor_type || '').localeCompare(b.investor_type || '')
-      return a.investor_name.localeCompare(b.investor_name)
-    })
-    return list
-  }, [investors, search, activeType, sortBy])
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   const labelStyle: React.CSSProperties = {
     fontSize: 10,
@@ -124,7 +149,7 @@ export default function InvestorsPage() {
           Investors
         </h1>
         <div style={{ fontSize: 13, color: '#374151', marginTop: 5 }}>
-          {loading ? 'Loading…' : error ? `Error: ${error}` : `${investors.length} investors tracked`}
+          {loading ? 'Loading…' : error ? `Error: ${error}` : `${totalCount.toLocaleString()} investors tracked`}
         </div>
       </div>
 
@@ -137,9 +162,9 @@ export default function InvestorsPage() {
           </svg>
           <input
             type="text"
-            placeholder="Search investors, countries, sectors…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            placeholder="Search investors…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             style={{ width: '100%', padding: '7px 0 7px 22px', fontSize: 13, fontWeight: 500, border: 'none', borderBottom: '1.5px solid #E5E7EB', background: 'transparent', color: '#1A1814', outline: 'none', fontFamily: 'inherit' }}
           />
         </div>
@@ -169,7 +194,9 @@ export default function InvestorsPage() {
 
       {/* Results count */}
       <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
-        {!loading && filtered.length > 0 && `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} investors`}
+        {!loading && totalCount > 0 && (
+          `${((page - 1) * PAGE_SIZE + 1).toLocaleString()}–${Math.min(page * PAGE_SIZE, totalCount).toLocaleString()} of ${totalCount.toLocaleString()} investors`
+        )}
       </div>
 
       {/* Column headers */}
@@ -184,10 +211,10 @@ export default function InvestorsPage() {
         <div style={{ padding: '3rem 0', textAlign: 'center', color: '#6B7280', fontSize: 14 }}>Loading investors…</div>
       ) : error ? (
         <div style={{ padding: '3rem 0', textAlign: 'center', color: '#993C1D', fontSize: 14 }}>Could not load investors: {error}</div>
-      ) : paginated.length === 0 ? (
+      ) : investors.length === 0 ? (
         <div style={{ padding: '3rem 0', textAlign: 'center', color: '#6B7280', fontSize: 14 }}>No investors found.</div>
       ) : (
-        paginated.map((investor) => {
+        investors.map((investor) => {
           const logoColor = getLogoColor(investor.investor_name)
           const typeStyle = getTypeStyle(investor.investor_type)
           const displayUrl = cleanWebsite(investor.website)
@@ -244,21 +271,23 @@ export default function InvestorsPage() {
       {/* Pagination */}
       {!loading && totalPages > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem' }}>
-          <span style={{ fontSize: 12, fontWeight: 500, color: '#6B7280' }}>Page {page} of {totalPages}</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#6B7280' }}>Page {page} of {totalPages.toLocaleString()}</span>
           <div style={{ display: 'flex', gap: 5 }}>
+            <button onClick={() => setPage(1)} disabled={page === 1}
+              style={{ padding: '5px 10px', fontSize: 12, fontWeight: 500, border: '1px solid #E5E7EB', borderRadius: 4, background: 'transparent', color: page === 1 ? '#D1D5DB' : '#1A1814', cursor: page === 1 ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              «
+            </button>
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
               style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, border: '1px solid #E5E7EB', borderRadius: 4, background: 'transparent', color: page === 1 ? '#D1D5DB' : '#1A1814', cursor: page === 1 ? 'default' : 'pointer', fontFamily: 'inherit' }}>
               ← Prev
             </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
-              <button key={p} onClick={() => setPage(p)}
-                style={{ padding: '5px 10px', fontSize: 12, fontWeight: 500, border: '1px solid', borderColor: page === p ? '#1A1814' : '#E5E7EB', borderRadius: 4, background: page === p ? '#1A1814' : 'transparent', color: page === p ? '#F9FAFB' : '#1A1814', cursor: 'pointer', fontFamily: 'inherit' }}>
-                {p}
-              </button>
-            ))}
             <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
               style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, border: '1px solid #E5E7EB', borderRadius: 4, background: 'transparent', color: page === totalPages ? '#D1D5DB' : '#1A1814', cursor: page === totalPages ? 'default' : 'pointer', fontFamily: 'inherit' }}>
               Next →
+            </button>
+            <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+              style={{ padding: '5px 10px', fontSize: 12, fontWeight: 500, border: '1px solid #E5E7EB', borderRadius: 4, background: 'transparent', color: page === totalPages ? '#D1D5DB' : '#1A1814', cursor: page === totalPages ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              »
             </button>
           </div>
         </div>
