@@ -53,6 +53,8 @@ const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
   "Acquired": { bg: "#FBEAF0", text: "#72243E" },
 };
 
+type CoInvestor = { investor_id: string; investors: { investor_name: string; slug: string | null } | null };
+
 export default async function CompanyProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -90,9 +92,30 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
 
   const { data: fundingRounds } = await supabase
     .from("deals")
-    .select("id, stage, amount_usd, total_raised_usd, announcement_date, investors!deals_lead_investor_id_fkey(investor_name, slug)")
+    .select("id, stage, amount_usd, announcement_date, investors!deals_lead_investor_id_fkey(investor_name, slug)")
     .eq("company_id", company.id)
     .order("announcement_date", { ascending: false, nullsFirst: false });
+
+  // Fetch co-investors for all deals on this company
+  const dealIds = (fundingRounds || []).map((d: { id: string }) => d.id);
+  let coInvestorMap: Record<string, { name: string; slug: string | null }[]> = {};
+
+  if (dealIds.length > 0) {
+    const { data: coInvestorRows } = await supabase
+      .from("deal_co_investors")
+      .select("deal_id, investor_id, investors(investor_name, slug)")
+      .in("deal_id", dealIds);
+
+    if (coInvestorRows) {
+      for (const row of coInvestorRows as (CoInvestor & { deal_id: string })[]) {
+        if (!coInvestorMap[row.deal_id]) coInvestorMap[row.deal_id] = [];
+        const inv = Array.isArray(row.investors) ? row.investors[0] : row.investors;
+        if (inv) {
+          coInvestorMap[row.deal_id].push({ name: inv.investor_name, slug: inv.slug });
+        }
+      }
+    }
+  }
 
   const sectionLabel: React.CSSProperties = {
     fontSize: "11px",
@@ -121,7 +144,6 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
     background: "transparent",
     textDecoration: "none",
     cursor: "pointer",
-    transition: "background 0.15s ease, border-color 0.15s ease",
   };
 
   const pills: { label: string; href: string }[] = [
@@ -170,9 +192,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
           </h1>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
             {pills.map((pill) => (
-              <Link key={pill.label} href={pill.href} style={pillStyle}>
-                {pill.label}
-              </Link>
+              <Link key={pill.label} href={pill.href} style={pillStyle}>{pill.label}</Link>
             ))}
           </div>
         </div>
@@ -258,27 +278,30 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
           <div style={sectionLabel}>04 — FUNDING HISTORY</div>
           {fundingRounds && fundingRounds.length > 0 ? (
             <>
-              {/* Column headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "100px 100px 120px 1fr", gap: "0 16px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
-                {["Round", "Amount", "Date", "Lead Investor"].map((col) => (
+              <div style={{ display: "grid", gridTemplateColumns: "90px 90px 110px 1fr 1fr", gap: "0 14px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
+                {["Round", "Amount", "Date", "Lead Investor", "Co-investors"].map((col) => (
                   <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#6B7280", fontWeight: 600 }}>
                     {col}
                   </span>
                 ))}
               </div>
+
               {(fundingRounds as {
                 id: string;
                 stage: string | null;
                 amount_usd: number | null;
-                total_raised_usd: number | null;
                 announcement_date: string | null;
                 investors: { investor_name: string; slug: string | null } | { investor_name: string; slug: string | null }[] | null;
               }[]).map((round) => {
                 const stageStyle = STAGE_COLORS[round.stage || ""] || { bg: "#F3F4F6", text: "#6B7280" };
                 const inv = Array.isArray(round.investors) ? round.investors[0] : round.investors;
                 const investorHref = inv?.slug ? `/investors/${inv.slug}` : null;
+                const coInvs = coInvestorMap[round.id] || [];
+                const visibleCoInvs = coInvs.slice(0, 2);
+                const overflow = coInvs.length - visibleCoInvs.length;
+
                 return (
-                  <div key={round.id} style={{ display: "grid", gridTemplateColumns: "100px 100px 120px 1fr", gap: "0 16px", padding: "12px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
+                  <div key={round.id} style={{ display: "grid", gridTemplateColumns: "90px 90px 110px 1fr 1fr", gap: "0 14px", padding: "12px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
                     <span>
                       {round.stage ? (
                         <span style={{ display: "inline-block", padding: "2px 8px", fontSize: "11px", fontWeight: 600, borderRadius: "3px", background: stageStyle.bg, color: stageStyle.text, whiteSpace: "nowrap" as const }}>
@@ -300,6 +323,52 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
                           </Link>
                         ) : inv.investor_name
                       ) : <span style={{ color: "rgba(26,24,20,0.25)" }}>—</span>}
+                    </span>
+                    <span style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
+                      {coInvs.length === 0 ? (
+                        <span style={{ color: "rgba(26,24,20,0.25)", fontSize: "13px" }}>—</span>
+                      ) : (
+                        <>
+                          {visibleCoInvs.map((co) => (
+                            co.slug ? (
+                              <Link key={co.slug} href={`/investors/${co.slug}`} style={{
+                                fontSize: "11px",
+                                padding: "2px 8px",
+                                borderRadius: "20px",
+                                border: "0.5px solid #E5E7EB",
+                                color: "#374151",
+                                textDecoration: "none",
+                                whiteSpace: "nowrap" as const,
+                              }}>
+                                {co.name}
+                              </Link>
+                            ) : (
+                              <span key={co.name} style={{
+                                fontSize: "11px",
+                                padding: "2px 8px",
+                                borderRadius: "20px",
+                                border: "0.5px solid #E5E7EB",
+                                color: "#374151",
+                                whiteSpace: "nowrap" as const,
+                              }}>
+                                {co.name}
+                              </span>
+                            )
+                          ))}
+                          {overflow > 0 && (
+                            <span style={{
+                              fontSize: "11px",
+                              padding: "2px 8px",
+                              borderRadius: "20px",
+                              border: "0.5px solid #E5E7EB",
+                              color: "rgba(26,24,20,0.4)",
+                              whiteSpace: "nowrap" as const,
+                            }}>
+                              +{overflow}
+                            </span>
+                          )}
+                        </>
+                      )}
                     </span>
                   </div>
                 );
@@ -326,7 +395,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
 
       </div>
 
-      {/* ── RIGHT SIDEBAR PANEL ── */}
+      {/* ── RIGHT SIDEBAR ── */}
       <div style={{
         padding: "48px 24px",
         background: "#FAFAFA",
@@ -337,9 +406,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
 
         {/* Aegos Score */}
         <div>
-          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "12px" }}>
-            AEGOS SCORE
-          </div>
+          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "12px" }}>AEGOS SCORE</div>
           <div style={{ background: "rgba(56,100,200,0.06)", border: "0.5px solid rgba(56,100,200,0.18)", borderRadius: "6px", padding: "14px 16px" }}>
             <div style={{ fontSize: "22px", fontFamily: "var(--font-lora)", fontWeight: 400, color: "#3864C8", marginBottom: "4px" }}>—</div>
             <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.35)", letterSpacing: "0.04em" }}>Awaiting data enrichment</div>
@@ -348,30 +415,17 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
 
         {/* Related News */}
         <div>
-          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>
-            RELATED NEWS
-          </div>
-          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>
-            Recent articles mentioning {company.company_name}
-          </div>
+          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>RELATED NEWS</div>
+          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>Recent articles mentioning {company.company_name}</div>
           {relatedNews && relatedNews.length > 0 ? (
             <div>
-              {relatedNews.map((article: {
-                id: number;
-                title: string;
-                source: string;
-                source_url: string;
-                created_at: string;
-                source_name: string | null;
-              }) => (
+              {relatedNews.map((article: { id: number; title: string; source: string; source_url: string; created_at: string; source_name: string | null }) => (
                 <div key={article.id} style={{ paddingBottom: "14px", marginBottom: "14px", borderBottom: "0.5px solid rgba(26,24,20,0.08)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "3px", background: "rgba(26,24,20,0.05)", color: "rgba(26,24,20,0.45)", border: "0.5px solid rgba(26,24,20,0.1)" }}>
                       {article.source_name ?? article.source}
                     </span>
-                    <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.3)", marginLeft: "auto" }}>
-                      {timeAgo(article.created_at)}
-                    </span>
+                    <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.3)", marginLeft: "auto" }}>{timeAgo(article.created_at)}</span>
                   </div>
                   <a href={article.source_url} target="_blank" rel="noopener noreferrer"
                     style={{ fontSize: "12px", lineHeight: 1.5, color: "#1A1814", textDecoration: "none", display: "block" }}>
@@ -379,49 +433,31 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
                   </a>
                 </div>
               ))}
-              <Link href="/resources/rundown" style={{ fontSize: "12px", color: "#3864C8", textDecoration: "none" }}>
-                View all in The Rundown →
-              </Link>
+              <Link href="/resources/rundown" style={{ fontSize: "12px", color: "#3864C8", textDecoration: "none" }}>View all in The Rundown →</Link>
             </div>
           ) : (
-            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>
-              No recent articles found
-            </div>
+            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>No recent articles found</div>
           )}
         </div>
 
         {/* Related Companies */}
         <div>
-          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>
-            RELATED COMPANIES
-          </div>
-          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>
-            {company.sector_primary ?? "Same sector"}
-          </div>
+          <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "4px" }}>RELATED COMPANIES</div>
+          <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>{company.sector_primary ?? "Same sector"}</div>
           {relatedCompanies && relatedCompanies.length > 0 ? (
             <div>
-              {relatedCompanies.map((co: {
-                id: string;
-                company_name: string;
-                sector_primary: string | null;
-                sector_secondary: string | null;
-                slug: string | null;
-              }) => (
+              {relatedCompanies.map((co: { id: string; company_name: string; sector_primary: string | null; sector_secondary: string | null; slug: string | null }) => (
                 <Link key={co.id} href={`/companies/${co.slug ?? co.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "0.5px solid rgba(26,24,20,0.08)", textDecoration: "none" }}>
                   <div>
                     <div style={{ fontSize: "13px", color: "#1A1814" }}>{co.company_name}</div>
-                    {co.sector_secondary && (
-                      <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.38)", marginTop: "2px" }}>{co.sector_secondary}</div>
-                    )}
+                    {co.sector_secondary && <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.38)", marginTop: "2px" }}>{co.sector_secondary}</div>}
                   </div>
                   <span style={{ fontSize: "14px", color: "rgba(26,24,20,0.3)" }}>›</span>
                 </Link>
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>
-              No related companies found
-            </div>
+            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", fontStyle: "italic" }}>No related companies found</div>
           )}
         </div>
 
