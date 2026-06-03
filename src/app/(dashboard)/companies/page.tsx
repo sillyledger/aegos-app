@@ -462,7 +462,7 @@ function CompaniesInner() {
 
               <span>
                 {company.sector_primary ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: '#EFF6FF', color: '#1D4ED8', border: '0.5px solid #BFDBFE', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: '#EFF6FF', color: '#1A1814', border: '0.5px solid #BFDBFE', whiteSpace: 'nowrap' }}>
                     {company.sector_primary}
                   </span>
                 ) : <span style={{ color: '#9CA3AF', fontSize: 13 }}>—</span>}
