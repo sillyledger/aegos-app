@@ -21,6 +21,38 @@ function timeAgo(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
+function formatAmount(amount: number | null): string {
+  if (!amount) return "—";
+  if (amount >= 1_000_000_000) {
+    const val = amount / 1_000_000_000;
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}B`;
+  }
+  if (amount >= 1_000_000) {
+    const val = amount / 1_000_000;
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}M`;
+  }
+  if (amount >= 1_000) {
+    const val = amount / 1_000;
+    return `$${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}K`;
+  }
+  return `$${amount}`;
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
+  "Seed":     { bg: "#EAF3DE", text: "#3B6D11" },
+  "Series A": { bg: "#E6F1FB", text: "#185FA5" },
+  "Series B": { bg: "#EEEDFE", text: "#534AB7" },
+  "Series C": { bg: "#FAEEDA", text: "#633806" },
+  "Growth":   { bg: "#F3E8FF", text: "#6B21A8" },
+  "Public":   { bg: "#F3F4F6", text: "#374151" },
+  "Acquired": { bg: "#FBEAF0", text: "#72243E" },
+};
+
 export default async function CompanyProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -55,6 +87,12 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
     .eq("sector_primary", company.sector_primary)
     .neq("id", company.id)
     .limit(5);
+
+  const { data: fundingRounds } = await supabase
+    .from("deals")
+    .select("id, stage, amount_usd, total_raised_usd, announcement_date, investors!deals_lead_investor_id_fkey(investor_name, slug)")
+    .eq("company_id", company.id)
+    .order("announcement_date", { ascending: false, nullsFirst: false });
 
   const sectionLabel: React.CSSProperties = {
     fontSize: "11px",
@@ -132,11 +170,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
           </h1>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
             {pills.map((pill) => (
-              <Link
-                key={pill.label}
-                href={pill.href}
-                style={pillStyle}
-              >
+              <Link key={pill.label} href={pill.href} style={pillStyle}>
                 {pill.label}
               </Link>
             ))}
@@ -222,10 +256,61 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
         {/* 04 — FUNDING HISTORY */}
         <div>
           <div style={sectionLabel}>04 — FUNDING HISTORY</div>
-          <div style={{ padding: "32px", border: "0.5px solid rgba(26,24,20,0.08)", borderRadius: "6px", textAlign: "center" }}>
-            <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", marginBottom: "4px" }}>No funding data yet</div>
-            <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.2)", letterSpacing: "0.04em" }}>Deal history will appear here once connected</div>
-          </div>
+          {fundingRounds && fundingRounds.length > 0 ? (
+            <>
+              {/* Column headers */}
+              <div style={{ display: "grid", gridTemplateColumns: "100px 100px 120px 1fr", gap: "0 16px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
+                {["Round", "Amount", "Date", "Lead Investor"].map((col) => (
+                  <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#6B7280", fontWeight: 600 }}>
+                    {col}
+                  </span>
+                ))}
+              </div>
+              {(fundingRounds as {
+                id: string;
+                stage: string | null;
+                amount_usd: number | null;
+                total_raised_usd: number | null;
+                announcement_date: string | null;
+                investors: { investor_name: string; slug: string | null } | { investor_name: string; slug: string | null }[] | null;
+              }[]).map((round) => {
+                const stageStyle = STAGE_COLORS[round.stage || ""] || { bg: "#F3F4F6", text: "#6B7280" };
+                const inv = Array.isArray(round.investors) ? round.investors[0] : round.investors;
+                const investorHref = inv?.slug ? `/investors/${inv.slug}` : null;
+                return (
+                  <div key={round.id} style={{ display: "grid", gridTemplateColumns: "100px 100px 120px 1fr", gap: "0 16px", padding: "12px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
+                    <span>
+                      {round.stage ? (
+                        <span style={{ display: "inline-block", padding: "2px 8px", fontSize: "11px", fontWeight: 600, borderRadius: "3px", background: stageStyle.bg, color: stageStyle.text, whiteSpace: "nowrap" as const }}>
+                          {round.stage}
+                        </span>
+                      ) : <span style={{ color: "rgba(26,24,20,0.25)", fontSize: "13px" }}>—</span>}
+                    </span>
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: round.amount_usd ? "#1A1814" : "rgba(26,24,20,0.25)" }}>
+                      {formatAmount(round.amount_usd)}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.4)" }}>
+                      {formatDate(round.announcement_date)}
+                    </span>
+                    <span style={{ fontSize: "13px" }}>
+                      {inv ? (
+                        investorHref ? (
+                          <Link href={investorHref} style={{ color: "#1A1814", textDecoration: "none", borderBottom: "0.5px solid rgba(26,24,20,0.25)" }}>
+                            {inv.investor_name}
+                          </Link>
+                        ) : inv.investor_name
+                      ) : <span style={{ color: "rgba(26,24,20,0.25)" }}>—</span>}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <div style={{ padding: "32px", border: "0.5px solid rgba(26,24,20,0.08)", borderRadius: "6px", textAlign: "center" }}>
+              <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", marginBottom: "4px" }}>No funding data yet</div>
+              <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.2)", letterSpacing: "0.04em" }}>Deal history will appear here once connected</div>
+            </div>
+          )}
         </div>
 
         <div style={divider} />
@@ -269,7 +354,6 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
           <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>
             Recent articles mentioning {company.company_name}
           </div>
-
           {relatedNews && relatedNews.length > 0 ? (
             <div>
               {relatedNews.map((article: {
@@ -282,26 +366,15 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
               }) => (
                 <div key={article.id} style={{ paddingBottom: "14px", marginBottom: "14px", borderBottom: "0.5px solid rgba(26,24,20,0.08)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px", flexWrap: "wrap" }}>
-                    <span style={{
-                      fontSize: "10px",
-                      padding: "2px 7px",
-                      borderRadius: "3px",
-                      background: "rgba(26,24,20,0.05)",
-                      color: "rgba(26,24,20,0.45)",
-                      border: "0.5px solid rgba(26,24,20,0.1)",
-                    }}>
+                    <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "3px", background: "rgba(26,24,20,0.05)", color: "rgba(26,24,20,0.45)", border: "0.5px solid rgba(26,24,20,0.1)" }}>
                       {article.source_name ?? article.source}
                     </span>
                     <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.3)", marginLeft: "auto" }}>
                       {timeAgo(article.created_at)}
                     </span>
                   </div>
-                  <a
-                    href={article.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: "12px", lineHeight: 1.5, color: "#1A1814", textDecoration: "none", display: "block" }}
-                  >
+                  <a href={article.source_url} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: "12px", lineHeight: 1.5, color: "#1A1814", textDecoration: "none", display: "block" }}>
                     {article.title}
                   </a>
                 </div>
@@ -325,7 +398,6 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
           <div style={{ fontSize: "12px", color: "rgba(26,24,20,0.35)", marginBottom: "16px" }}>
             {company.sector_primary ?? "Same sector"}
           </div>
-
           {relatedCompanies && relatedCompanies.length > 0 ? (
             <div>
               {relatedCompanies.map((co: {
@@ -335,18 +407,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
                 sector_secondary: string | null;
                 slug: string | null;
               }) => (
-                <Link
-                  key={co.id}
-                  href={`/companies/${co.slug ?? co.id}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "10px 0",
-                    borderBottom: "0.5px solid rgba(26,24,20,0.08)",
-                    textDecoration: "none",
-                  }}
-                >
+                <Link key={co.id} href={`/companies/${co.slug ?? co.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "0.5px solid rgba(26,24,20,0.08)", textDecoration: "none" }}>
                   <div>
                     <div style={{ fontSize: "13px", color: "#1A1814" }}>{co.company_name}</div>
                     {co.sector_secondary && (
