@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface WatchlistItem {
   id: string;
   company_data: {
@@ -28,8 +26,6 @@ interface Doc {
   created_at: string;
   updated_at: string;
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const LOGO_COLORS = [
   { bg: '#CECBF6', text: '#3C3489' },
@@ -72,15 +68,13 @@ function formatDate(dateStr: string): string {
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 10,
+  fontSize: 12,
   fontWeight: 600,
-  letterSpacing: '0.1em',
+  letterSpacing: '0.07em',
   textTransform: 'uppercase',
   color: '#9CA3AF',
   fontFamily: 'var(--font-jakarta), sans-serif',
 };
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function MyIntelClient() {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
@@ -115,7 +109,6 @@ export default function MyIntelClient() {
     load();
   }, []);
 
-  // Derive unique lists
   const listNames = ['Default', ...Array.from(
     new Set(watchlist.map(w => w.list_name || 'Default').filter(n => n !== 'Default'))
   )];
@@ -165,7 +158,6 @@ export default function MyIntelClient() {
     setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, is_starred: !d.is_starred } : d));
   }
 
-  // Recent activity feed
   const activity = [
     ...watchlist.slice(0, 5).map(w => ({
       type: 'watchlist' as const,
@@ -185,7 +177,7 @@ export default function MyIntelClient() {
 
   if (loading) {
     return (
-      <div style={{ paddingTop: 60, textAlign: 'center', color: '#9CA3AF', fontSize: 13 }}>
+      <div style={{ paddingTop: 60, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
         Loading your intel…
       </div>
     );
@@ -202,13 +194,13 @@ export default function MyIntelClient() {
           { num: docs.length, label: 'Docs' },
         ].map(({ num, label }) => (
           <div key={label} style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 10, padding: '16px 18px' }}>
-            <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 28, fontWeight: 400, color: '#1A1814', marginBottom: 2 }}>{num}</div>
+            <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 28, fontWeight: 400, color: '#1A1814', marginBottom: 4 }}>{num}</div>
             <div style={{ ...labelStyle }}>{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Watchlists */}
+      {/* Watchlists header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={labelStyle}>Watchlists</span>
         <button
@@ -226,7 +218,7 @@ export default function MyIntelClient() {
             value={newListName}
             onChange={e => setNewListName(e.target.value)}
             placeholder="List name — e.g. Q3 Pipeline"
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif', background: 'transparent' }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif', background: 'transparent' }}
           />
           <button
             onClick={() => { setNewListOpen(false); setNewListName(''); }}
@@ -244,7 +236,7 @@ export default function MyIntelClient() {
 
       {watchlist.length === 0 ? (
         <div style={{ background: '#fff', border: '0.5px dashed #E5E7EB', borderRadius: 10, padding: '32px 24px', textAlign: 'center', marginBottom: 32 }}>
-          <p style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+          <p style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>
             No companies saved yet. Use <strong style={{ color: '#6B7280' }}>Research & Parsing</strong> to find and save companies.
           </p>
         </div>
@@ -255,10 +247,10 @@ export default function MyIntelClient() {
             const accent = getAccentColor(name);
             return (
               <div key={name} style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}>
-                <div style={{ height: 4, background: accent }} />
+                <div style={{ height: 3, background: accent }} />
                 <div style={{ padding: '14px 16px' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1814', marginBottom: 4, fontFamily: 'var(--font-jakarta), sans-serif' }}>{name}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1814', marginBottom: 3, fontFamily: 'var(--font-jakarta), sans-serif' }}>{name}</div>
+                  <div style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                     {items.length > 0 ? `Updated ${timeAgo(items[0].created_at)}` : 'Empty list'}
                   </div>
                 </div>
@@ -273,18 +265,17 @@ export default function MyIntelClient() {
                       );
                     })}
                   </div>
-                  <span style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>{items.length} {items.length === 1 ? 'company' : 'companies'}</span>
+                  <span style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>{items.length} {items.length === 1 ? 'company' : 'companies'}</span>
                 </div>
-                {/* Company rows */}
                 {items.slice(0, 3).map(item => {
                   const logo = getLogoColor(item.company_data?.company_name || 'X');
                   return (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: '0.5px solid #F9FAFB' }}>
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 16px', borderTop: '0.5px solid #F9FAFB' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: 5, background: logo.bg, color: logo.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: 5, background: logo.bg, color: logo.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
                           {(item.company_data?.company_name || 'X').charAt(0).toUpperCase()}
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                           {item.company_data?.company_name || '—'}
                         </span>
                       </div>
@@ -299,7 +290,7 @@ export default function MyIntelClient() {
                   );
                 })}
                 {items.length > 3 && (
-                  <div style={{ padding: '8px 16px', fontSize: 11, color: '#9CA3AF', borderTop: '0.5px solid #F9FAFB', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  <div style={{ padding: '8px 16px', fontSize: 13, color: '#9CA3AF', borderTop: '0.5px solid #F9FAFB', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                     +{items.length - 3} more
                   </div>
                 )}
@@ -309,7 +300,7 @@ export default function MyIntelClient() {
         </div>
       )}
 
-      {/* Docs */}
+      {/* Docs header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <span style={labelStyle}>Docs</span>
         <button
@@ -322,7 +313,7 @@ export default function MyIntelClient() {
 
       {docs.length === 0 && !newDocOpen ? (
         <div style={{ background: '#fff', border: '0.5px dashed #E5E7EB', borderRadius: 10, padding: '32px 24px', textAlign: 'center', marginBottom: 32 }}>
-          <p style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+          <p style={{ fontSize: 14, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>
             No docs yet. Create a doc to capture research notes for your team.
           </p>
         </div>
@@ -330,7 +321,7 @@ export default function MyIntelClient() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }}>
           {newDocOpen && (
             <div style={{ background: '#fff', border: '1px solid #1A1814', borderRadius: 10, overflow: 'hidden', gridColumn: '1 / -1' }}>
-              <div style={{ height: 4, background: '#1A1814' }} />
+              <div style={{ height: 3, background: '#1A1814' }} />
               <div style={{ padding: '16px' }}>
                 <input
                   type="text"
@@ -338,13 +329,13 @@ export default function MyIntelClient() {
                   onChange={e => setNewDocTitle(e.target.value)}
                   placeholder="Doc title…"
                   autoFocus
-                  style={{ width: '100%', border: 'none', outline: 'none', fontSize: 14, fontWeight: 600, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif', marginBottom: 10, background: 'transparent' }}
+                  style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif', marginBottom: 10, background: 'transparent' }}
                 />
                 <textarea
                   value={newDocContent}
                   onChange={e => setNewDocContent(e.target.value)}
                   placeholder="Start writing your research notes…"
-                  style={{ width: '100%', border: 'none', outline: 'none', fontSize: 13, color: '#374151', fontFamily: 'var(--font-jakarta), sans-serif', resize: 'none', height: 80, background: 'transparent', lineHeight: 1.6 }}
+                  style={{ width: '100%', border: 'none', outline: 'none', fontSize: 14, color: '#374151', fontFamily: 'var(--font-jakarta), sans-serif', resize: 'none', height: 80, background: 'transparent', lineHeight: 1.6 }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '10px 16px', borderTop: '0.5px solid #F3F4F6' }}>
@@ -353,7 +344,7 @@ export default function MyIntelClient() {
                   Cancel
                 </button>
                 <button onClick={handleCreateDoc} disabled={!newDocTitle.trim() || saving}
-                  style={{ height: 32, padding: '0 14px', border: 'none', borderRadius: 6, background: newDocTitle.trim() ? '#1A1814' : '#E5E7EB', color: newDocTitle.trim() ? '#fff' : '#9CA3AF', fontSize: 12, fontWeight: 600, cursor: newDocTitle.trim() ? 'pointer' : 'default', fontFamily: 'var(--font-jakarta), sans-serif' }}>
+                  style={{ height: 32, padding: '0 14px', border: 'none', borderRadius: 6, background: newDocTitle.trim() ? '#1A1814' : '#E5E7EB', color: newDocTitle.trim() ? '#fff' : '#9CA3AF', fontSize: 12, fontWeight: 500, cursor: newDocTitle.trim() ? 'pointer' : 'default', fontFamily: 'var(--font-jakarta), sans-serif' }}>
                   {saving ? 'Saving…' : 'Save doc'}
                 </button>
               </div>
@@ -362,18 +353,20 @@ export default function MyIntelClient() {
           {docs.map(doc => {
             const accent = getAccentColor(doc.title);
             return (
-              <div key={doc.id} onClick={() => setActiveDoc(doc)} style={{ background: '#fff', border: `0.5px solid ${activeDoc?.id === doc.id ? '#1A1814' : '#E5E7EB'}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s' }}>
-                <div style={{ height: 4, background: accent }} />
+              <div key={doc.id} onClick={() => setActiveDoc(doc)} style={{ background: '#fff', border: `0.5px solid ${activeDoc?.id === doc.id ? '#1A1814' : '#E5E7EB'}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}>
+                <div style={{ height: 3, background: accent }} />
                 <div style={{ padding: '14px 16px', minHeight: 90 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1814', marginBottom: 6, fontFamily: 'var(--font-jakarta), sans-serif' }}>{doc.title}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.5, fontFamily: 'var(--font-jakarta), sans-serif', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1814', marginBottom: 6, fontFamily: 'var(--font-jakarta), sans-serif' }}>{doc.title}</div>
+                  <div style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.5, fontFamily: 'var(--font-jakarta), sans-serif', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {doc.content || <span style={{ fontStyle: 'italic' }}>No content yet</span>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: '0.5px solid #F3F4F6' }}>
-                  <span style={{ fontSize: 11, color: '#C0BEB8', fontFamily: 'var(--font-jakarta), sans-serif' }}>{formatDate(doc.updated_at)}</span>
+                  <span style={{ fontSize: 13, color: '#C0BEB8', fontFamily: 'var(--font-jakarta), sans-serif' }}>{formatDate(doc.updated_at)}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {doc.is_shared && <span style={{ fontSize: 10, background: '#EAF3DE', color: '#3B6D11', padding: '2px 8px', borderRadius: 20, fontWeight: 600, fontFamily: 'var(--font-jakarta), sans-serif' }}>Shared</span>}
+                    {doc.is_shared && (
+                      <span style={{ fontSize: 11, background: '#F3F4F6', color: '#374151', padding: '2px 9px', borderRadius: 11, fontWeight: 500, border: '0.5px solid #E5E7EB', fontFamily: 'var(--font-jakarta), sans-serif' }}>Shared</span>
+                    )}
                     <button
                       onClick={e => { e.stopPropagation(); handleToggleStar(doc); }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: doc.is_starred ? '#F59E0B' : '#D1D5DB' }}
@@ -399,7 +392,7 @@ export default function MyIntelClient() {
             <button onClick={() => setActiveDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 20 }}>×</button>
           </div>
           <div style={{ height: '0.5px', background: '#E5E7EB', marginBottom: 16 }} />
-          <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, fontFamily: 'var(--font-jakarta), sans-serif', whiteSpace: 'pre-wrap' }}>
+          <div style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, fontFamily: 'var(--font-jakarta), sans-serif', whiteSpace: 'pre-wrap' }}>
             {activeDoc.content || <span style={{ color: '#C0BEB8', fontStyle: 'italic' }}>This doc has no content yet.</span>}
           </div>
         </div>
@@ -411,22 +404,23 @@ export default function MyIntelClient() {
           <div style={{ ...labelStyle, marginBottom: 14 }}>Recent activity</div>
           <div style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 10, overflow: 'hidden' }}>
             {activity.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < activity.length - 1 ? '0.5px solid #F3F4F6' : 'none' }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6, background: item.color.bg, color: item.color.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font-jakarta), sans-serif' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: i < activity.length - 1 ? '0.5px solid #F3F4F6' : 'none' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 6, background: item.color.bg, color: item.color.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                   {item.name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>{item.name}</div>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>{item.desc}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1814', fontFamily: 'var(--font-jakarta), sans-serif' }}>{item.name}</div>
+                  <div style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'var(--font-jakarta), sans-serif' }}>{item.desc}</div>
                 </div>
+                {/* Neutral gray badge — no rainbow */}
                 <span style={{
-                  fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif',
-                  background: item.type === 'doc' ? '#EEEDFE' : '#EAF3DE',
-                  color: item.type === 'doc' ? '#534AB7' : '#3B6D11',
+                  fontSize: 12, padding: '3px 9px', borderRadius: 11, fontWeight: 500, whiteSpace: 'nowrap',
+                  background: '#F3F4F6', color: '#374151', border: '0.5px solid #E5E7EB',
+                  fontFamily: 'var(--font-jakarta), sans-serif',
                 }}>
                   {item.type === 'doc' ? 'Doc' : 'Watchlist'}
                 </span>
-                <span style={{ fontSize: 11, color: '#C0BEB8', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>{timeAgo(item.time)}</span>
+                <span style={{ fontSize: 13, color: '#C0BEB8', whiteSpace: 'nowrap', fontFamily: 'var(--font-jakarta), sans-serif' }}>{timeAgo(item.time)}</span>
               </div>
             ))}
           </div>
