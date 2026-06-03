@@ -197,7 +197,7 @@ function CompaniesInner() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: '0.07em',
     textTransform: 'uppercase' as const,
     color: '#9CA3AF',
@@ -229,7 +229,7 @@ function CompaniesInner() {
         <h1 style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 30, fontWeight: 400, color: '#1A1814', lineHeight: 1.2, margin: 0 }}>
           Companies
         </h1>
-        <div style={{ fontSize: 13, color: '#374151', marginTop: 5 }}>
+        <div style={{ fontSize: 14, color: '#374151', marginTop: 5 }}>
           {loading ? 'Loading…' : error ? `Error: ${error}` : `${companies.length} companies tracked`}
         </div>
       </div>
@@ -281,7 +281,7 @@ function CompaniesInner() {
       {filtersOpen && (
         <div style={{ background: 'white', border: '0.5px solid #E5E7EB', borderRadius: 8, marginBottom: 12, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: '0.5px solid #F3F4F6' }}>
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#374151' }}>Filter companies</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>Filter companies</span>
             <button onClick={() => setFiltersOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
           </div>
 
@@ -363,7 +363,7 @@ function CompaniesInner() {
             key={s}
             onClick={() => { setActiveSector(s); setPage(1) }}
             style={{
-              height: 26, padding: '0 11px', fontSize: 11, fontWeight: activeSector === s ? 600 : 500,
+              height: 28, padding: '0 12px', fontSize: 12, fontWeight: activeSector === s ? 600 : 500,
               borderRadius: 13, border: '0.5px solid', cursor: 'pointer', fontFamily: 'inherit',
               borderColor: activeSector === s ? '#111827' : '#E5E7EB',
               background: activeSector === s ? '#111827' : 'white',
@@ -422,7 +422,7 @@ function CompaniesInner() {
       )}
 
       {/* Results count */}
-      <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
+      <div style={{ fontSize: 14, color: '#6B7280', fontWeight: 500, marginBottom: 6 }}>
         {!loading && filtered.length > 0 && `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} companies`}
       </div>
 
@@ -449,7 +449,7 @@ function CompaniesInner() {
             <div
               key={company.id}
               onClick={() => window.location.href = href}
-              style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 120px 120px 100px', gap: '0 16px', padding: '11px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', cursor: 'pointer' }}
+              style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 120px 120px 100px', gap: '0 16px', padding: '13px 0', borderBottom: '0.5px solid #E5E7EB', alignItems: 'center', cursor: 'pointer' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.8)' }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
             >
@@ -457,26 +457,26 @@ function CompaniesInner() {
                 <div style={{ width: 28, height: 28, borderRadius: 5, background: logoColor.bg, color: logoColor.text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                   {company.company_name.charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#1A1814' }}>{company.company_name}</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: '#1A1814' }}>{company.company_name}</span>
               </div>
 
               <span>
                 {company.sector_primary ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: '#EFF6FF', color: '#1A1814', border: '0.5px solid #BFDBFE', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 11, fontSize: 12, fontWeight: 500, background: '#EFF6FF', color: '#1A1814', border: '0.5px solid #BFDBFE', whiteSpace: 'nowrap' }}>
                     {company.sector_primary}
                   </span>
                 ) : <span style={{ color: '#9CA3AF', fontSize: 13 }}>—</span>}
               </span>
 
-              <span style={{ fontSize: 12, color: company.ownership_type ? '#374151' : '#9CA3AF' }}>
+              <span style={{ fontSize: 14, color: company.ownership_type ? '#374151' : '#9CA3AF' }}>
                 {company.ownership_type || '—'}
               </span>
 
-              <span style={{ fontSize: 12, color: company.country ? '#374151' : '#9CA3AF' }}>
+              <span style={{ fontSize: 14, color: company.country ? '#374151' : '#9CA3AF' }}>
                 {company.country || '—'}
               </span>
 
-              <span style={{ fontSize: 12, color: '#6B7280' }}>
+              <span style={{ fontSize: 14, color: '#6B7280' }}>
                 {company.founding_year || '—'}
               </span>
             </div>
