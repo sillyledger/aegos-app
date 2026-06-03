@@ -107,7 +107,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
       .in("deal_id", dealIds);
 
     if (coInvestorRows) {
-      for (const row of coInvestorRows as (CoInvestor & { deal_id: string })[]) {
+      for (const row of coInvestorRows as unknown as (CoInvestor & { deal_id: string })[]) {
         if (!coInvestorMap[row.deal_id]) coInvestorMap[row.deal_id] = [];
         const inv = Array.isArray(row.investors) ? row.investors[0] : row.investors;
         if (inv) {
