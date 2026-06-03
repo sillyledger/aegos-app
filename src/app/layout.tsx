@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Lora, Plus_Jakarta_Sans } from "next/font/google";
+import { Lora, Public_Sans } from "next/font/google";
 import "./globals.css";
 
 const lora = Lora({
@@ -9,10 +9,10 @@ const lora = Lora({
   style: ["normal", "italic"],
 });
 
-const jakarta = Plus_Jakarta_Sans({
+const publicSans = Public_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${lora.variable} ${jakarta.variable}`}>
+      <body className={`${lora.variable} ${publicSans.variable}`}>
         {children}
       </body>
     </html>
