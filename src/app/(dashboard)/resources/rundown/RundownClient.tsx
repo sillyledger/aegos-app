@@ -18,18 +18,6 @@ const SOURCE_LABEL_MAP: Record<string, string> = {
   sec_edgar:       'SEC EDGAR',
 };
 
-type BadgeStyle = { background: string; color: string };
-
-const SOURCE_BADGE: Record<string, BadgeStyle> = {
-  google_news:     { background: '#E6F1FB', color: '#185FA5' },
-  techcrunch:      { background: '#FAECE7', color: '#993C1D' },
-  rss_feed:        { background: '#E6F1FB', color: '#185FA5' },
-  hacker_news:     { background: '#FAEEDA', color: '#854F0B' },
-  product_hunt:    { background: '#FAECE7', color: '#993C1D' },
-  companies_house: { background: '#EEEDFE', color: '#3C3489' },
-  sec_edgar:       { background: '#EAF3DE', color: '#3B6D11' },
-};
-
 type FeedItem = {
   id: string;
   title: string;
@@ -93,7 +81,6 @@ function findCompanyMatch(title: string, companies: CompanyMatch[]): CompanyMatc
   const lower = title.toLowerCase();
   let best: CompanyMatch | null = null;
   let bestIndex = Infinity;
-
   for (const company of companies) {
     const keyword = slugToKeyword(company.slug);
     if (keyword.length < 5) continue;
@@ -103,7 +90,6 @@ function findCompanyMatch(title: string, companies: CompanyMatch[]): CompanyMatc
       bestIndex = idx;
     }
   }
-
   return best;
 }
 
@@ -216,14 +202,16 @@ export default function RundownClient() {
   });
   const maxCount = Math.max(...Object.values(sourceCounts), 1);
 
-  const srcBadge = (item: FeedItem) => {
-    const style = SOURCE_BADGE[item.source] ?? { background: '#F3F4F6', color: '#6B7280' };
-    return (
-      <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, ...style }}>
-        {displaySource(item)}
-      </span>
-    );
-  };
+  // Unified neutral gray source badge — same for all sources
+  const srcBadge = (item: FeedItem) => (
+    <span style={{
+      fontSize: 12, padding: '3px 9px', borderRadius: 11,
+      background: '#F3F4F6', color: '#374151',
+      border: '0.5px solid #E5E7EB', whiteSpace: 'nowrap',
+    }}>
+      {displaySource(item)}
+    </span>
+  );
 
   const companyBadge = (title: string) => {
     const match = findCompanyMatch(title, companies);
@@ -233,9 +221,9 @@ export default function RundownClient() {
         href={`/companies/${match.slug}`}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
-          fontSize: 11, padding: '3px 8px', borderRadius: 4,
-          background: 'rgba(56,100,200,0.08)', color: '#3864C8',
-          border: '0.5px solid rgba(56,100,200,0.25)',
+          fontSize: 12, padding: '3px 9px', borderRadius: 11,
+          background: '#EFF6FF', color: '#1A1814',
+          border: '0.5px solid #BFDBFE',
           fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap',
         }}
       >
@@ -246,10 +234,8 @@ export default function RundownClient() {
 
   return (
     <div>
-      {/* Header row: title left, search right */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '2rem', marginBottom: '1.75rem' }}>
-
-        {/* Title */}
         <div style={{ flexShrink: 0 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6B7280', marginBottom: 5, fontWeight: 600 }}>
             The Rundown
@@ -262,11 +248,11 @@ export default function RundownClient() {
           </h2>
         </div>
 
-        {/* Search bar */}
+        {/* Search */}
         <div ref={searchRef} style={{ position: 'relative', width: '100%', maxWidth: 520, marginTop: 8 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            border: `0.5px solid ${showDropdown || query ? '#3864C8' : '#D1D5DB'}`,
+            border: `0.5px solid ${showDropdown || query ? '#111827' : '#E5E7EB'}`,
             borderRadius: showDropdown ? '8px 8px 0 0' : 8,
             padding: '0 14px', height: 42,
             background: '#fff',
@@ -281,7 +267,7 @@ export default function RundownClient() {
               onKeyDown={handleKeyDown}
               onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
               autoComplete="off"
-placeholder="Search articles…"
+              placeholder="Search articles…"
               style={{
                 flex: 1, border: 'none', outline: 'none', fontSize: 14,
                 color: '#1A1814', background: 'transparent',
@@ -296,7 +282,7 @@ placeholder="Search articles…"
           {showDropdown && suggestions.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-              background: '#fff', border: '0.5px solid #3864C8',
+              background: '#fff', border: '0.5px solid #111827',
               borderTop: 'none', borderRadius: '0 0 8px 8px',
             }}>
               <div style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#9CA3AF', padding: '8px 14px 4px' }}>
@@ -310,13 +296,13 @@ placeholder="Search articles…"
                   onMouseEnter={e => (e.currentTarget.style.background = '#F9FAFB')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1814', marginBottom: 4, lineHeight: 1.35 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1814', marginBottom: 4, lineHeight: 1.35 }}>
                     {cleanTitle(item.title)}
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {srcBadge(item)}
                     {companyBadge(item.title)}
-                    <span style={{ fontSize: 11, color: '#9CA3AF' }}>{timeAgo(item.approved_at ?? item.created_at)}</span>
+                    <span style={{ fontSize: 12, color: '#9CA3AF' }}>{timeAgo(item.approved_at ?? item.created_at)}</span>
                   </div>
                 </div>
               ))}
@@ -327,7 +313,7 @@ placeholder="Search articles…"
 
       {/* Live indicator */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderTop: '0.5px solid #E5E7EB', paddingTop: 12, marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9CA3AF' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9CA3AF' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#97C459', display: 'inline-block' }} />
           Live · {now}
         </div>
@@ -341,7 +327,7 @@ placeholder="Search articles…"
           <span style={{ color: '#9CA3AF' }}>{filteredItems?.length ?? 0} articles</span>
           <button
             onClick={clearSearch}
-            style={{ marginLeft: 4, fontSize: 12, color: '#3864C8', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font-jakarta), sans-serif' }}
+            style={{ marginLeft: 4, fontSize: 12, color: '#374151', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font-jakarta), sans-serif' }}
           >
             Clear
           </button>
@@ -355,33 +341,34 @@ placeholder="Search articles…"
           {activeQuery ? `No articles found for "${activeQuery}"` : 'No articles found.'}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '2.5rem', alignItems: 'start' }}>
 
+          {/* Main feed */}
           <div>
             {featured && (
               <div style={{ borderTop: '2px solid #1A1814', paddingTop: '1rem', marginBottom: '1.75rem' }}>
-                <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Top story</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 10 }}>Top story</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                   {srcBadge(featured)}
                   {companyBadge(featured.title)}
                 </div>
                 <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                  <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 21, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 8, cursor: 'pointer' }}>
+                  <div style={{ fontFamily: 'var(--font-lora), Georgia, serif', fontSize: 22, fontWeight: 400, color: '#1A1814', lineHeight: 1.38, marginBottom: 10, cursor: 'pointer' }}>
                     {cleanTitle(featured.title)}
                   </div>
                 </a>
                 {featured.description && stripHtml(featured.description).length > 10 && (
-                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, marginBottom: 10 }}>
+                  <div style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6, marginBottom: 10 }}>
                     {stripHtml(featured.description).slice(0, 200)}
                     {stripHtml(featured.description).length > 200 ? '…' : ''}
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12, color: '#9CA3AF' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 13, color: '#9CA3AF' }}>
                   <span>{displaySource(featured)}</span>
                   <span>·</span>
                   <span>{timeAgo(featured.approved_at ?? featured.created_at)}</span>
                   <span>·</span>
-                  <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>
+                  <a href={featured.source_url} target="_blank" rel="noopener noreferrer" style={{ color: '#374151', fontSize: 13, textDecoration: 'none', borderBottom: '0.5px solid #D1D5DB' }}>
                     Read source ↗
                   </a>
                 </div>
@@ -391,20 +378,21 @@ placeholder="Search articles…"
             <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: '1rem' }}>
               {activeQuery ? 'Matching articles' : 'Latest stories'}
             </div>
+
             <div>
               {rest.map((item, i) => (
-                <div key={item.id} style={{ padding: '13px 0', borderBottom: '0.5px solid #E5E7EB', borderTop: i === 0 ? '0.5px solid #E5E7EB' : 'none' }}>
+                <div key={item.id} style={{ padding: '14px 0', borderBottom: '0.5px solid #E5E7EB', borderTop: i === 0 ? '0.5px solid #E5E7EB' : 'none' }}>
                   <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1814', lineHeight: 1.4, marginBottom: 6 }}>
+                    <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1814', lineHeight: 1.45, marginBottom: 8 }}>
                       {cleanTitle(item.title)}
                     </div>
                   </a>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#9CA3AF', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: '#9CA3AF', flexWrap: 'wrap' }}>
                     {srcBadge(item)}
                     {companyBadge(item.title)}
                     <span>·</span>
                     <span>{timeAgo(item.approved_at ?? item.created_at)}</span>
-                    <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', color: '#185FA5', fontSize: 12, textDecoration: 'none' }}>↗</a>
+                    <a href={item.source_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', color: '#9CA3AF', fontSize: 13, textDecoration: 'none' }}>↗</a>
                   </div>
                 </div>
               ))}
@@ -419,8 +407,8 @@ placeholder="Search articles…"
                     style={{
                       fontSize: 12, padding: '5px 11px',
                       border: page === n ? '0.5px solid #1A1814' : '0.5px solid #E5E7EB',
-                      borderRadius: 4, background: 'transparent',
-                      color: page === n ? '#1A1814' : '#6B7280',
+                      borderRadius: 4, background: page === n ? '#1A1814' : 'transparent',
+                      color: page === n ? 'white' : '#6B7280',
                       fontWeight: page === n ? 500 : 400,
                       cursor: 'pointer', fontFamily: 'var(--font-jakarta), sans-serif',
                     }}
@@ -440,6 +428,7 @@ placeholder="Search articles…"
             )}
           </div>
 
+          {/* Sidebar */}
           <div>
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 12, paddingBottom: 8, borderBottom: '0.5px solid #E5E7EB' }}>
@@ -448,14 +437,14 @@ placeholder="Search articles…"
               {Object.entries(sourceCounts).map(([label, count]) => (
                 <div key={label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#185FA5', display: 'inline-block' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#9CA3AF', display: 'inline-block', flexShrink: 0 }} />
                       {label}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: '#1A1814' }}>{count}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: '#1A1814' }}>{count}</span>
                   </div>
-                  <div style={{ height: 3, background: '#E5E7EB', borderRadius: 2, marginBottom: 6 }}>
-                    <div style={{ height: 3, borderRadius: 2, background: '#185FA5', width: `${Math.round((count / maxCount) * 100)}%` }} />
+                  <div style={{ height: 2, background: '#F3F4F6', borderRadius: 2, marginBottom: 6 }}>
+                    <div style={{ height: 2, borderRadius: 2, background: '#D1D5DB', width: `${Math.round((count / maxCount) * 100)}%` }} />
                   </div>
                 </div>
               ))}
@@ -463,7 +452,7 @@ placeholder="Search articles…"
 
             <div style={{ background: '#fff', border: '0.5px solid #E5E7EB', borderRadius: 8, padding: '1rem 1.25rem' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>About The Rundown</div>
-              <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
                 A live feed of company intelligence signals pulled from tracked sources globally. Updated continuously as new records are approved.
               </div>
             </div>
