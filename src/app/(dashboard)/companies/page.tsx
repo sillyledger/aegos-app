@@ -36,6 +36,7 @@ function getLogoColor(name: string) {
 }
 
 const PAGE_SIZE = 10
+const SECTOR_PILL_LIMIT = 15
 
 const GREENS = ['#EAF3DE', '#C0DD97', '#97C459', '#639922', '#3B6D11']
 
@@ -57,6 +58,9 @@ function CompaniesInner() {
   const [activeType, setActiveType] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'name' | 'country' | 'sector'>('name')
   const [page, setPage] = useState(1)
+
+  // Sector pill expand/collapse
+  const [sectorsExpanded, setSectorsExpanded] = useState(false)
 
   // Advanced filter panel
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -102,13 +106,20 @@ function CompaniesInner() {
     if (typeParam) setActiveType(typeParam)
   }, [loading, searchParams])
 
+  // Sectors sorted by company count, top 15 shown by default
   const sectorFilters = useMemo(() => {
-    const seen = new Set<string>()
+    const counts: Record<string, number> = {}
     for (const c of companies) {
-      if (c.sector_primary) seen.add(c.sector_primary)
+      if (c.sector_primary) counts[c.sector_primary] = (counts[c.sector_primary] || 0) + 1
     }
-    return ['All', ...Array.from(seen).sort()]
+    const sorted = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name)
+    return sorted
   }, [companies])
+
+  const visibleSectors = sectorsExpanded ? sectorFilters : sectorFilters.slice(0, SECTOR_PILL_LIMIT)
+  const hiddenCount = sectorFilters.length - SECTOR_PILL_LIMIT
 
   // Heatmap data
   const heatmapData = useMemo(() => {
@@ -217,6 +228,14 @@ function CompaniesInner() {
     fontFamily: 'inherit',
     marginBottom: 6,
   }
+
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    height: 28, padding: '0 12px', fontSize: 12, fontWeight: active ? 600 : 500,
+    borderRadius: 13, border: '0.5px solid', cursor: 'pointer', fontFamily: 'inherit',
+    borderColor: active ? '#111827' : '#E5E7EB',
+    background: active ? '#111827' : 'white',
+    color: active ? 'white' : '#374151',
+  })
 
   return (
     <div style={{ padding: '2rem 2.5rem', background: '#F9FAFB', minHeight: '100vh', fontFamily: 'var(--font-jakarta), sans-serif' }}>
@@ -357,22 +376,40 @@ function CompaniesInner() {
       )}
 
       {/* Sector pills */}
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: activeType ? '8px' : '1rem' }}>
-        {sectorFilters.map((s) => (
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: activeType ? '8px' : '1rem', alignItems: 'center' }}>
+
+        {/* All pill */}
+        <button
+          onClick={() => { setActiveSector('All'); setPage(1) }}
+          style={pillStyle(activeSector === 'All')}
+        >
+          All
+        </button>
+
+        {/* Visible sector pills */}
+        {visibleSectors.map((s) => (
           <button
             key={s}
             onClick={() => { setActiveSector(s); setPage(1) }}
-            style={{
-              height: 28, padding: '0 12px', fontSize: 12, fontWeight: activeSector === s ? 600 : 500,
-              borderRadius: 13, border: '0.5px solid', cursor: 'pointer', fontFamily: 'inherit',
-              borderColor: activeSector === s ? '#111827' : '#E5E7EB',
-              background: activeSector === s ? '#111827' : 'white',
-              color: activeSector === s ? 'white' : '#374151',
-            }}
+            style={pillStyle(activeSector === s)}
           >
             {s}
           </button>
         ))}
+
+        {/* Show more / Show less toggle */}
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setSectorsExpanded(e => !e)}
+            style={{
+              height: 28, padding: '0 12px', fontSize: 12, fontWeight: 500,
+              borderRadius: 13, border: '0.5px dashed #D1D5DB', cursor: 'pointer',
+              fontFamily: 'inherit', background: 'transparent', color: '#6B7280',
+            }}
+          >
+            {sectorsExpanded ? 'Show less' : `+${hiddenCount} more`}
+          </button>
+        )}
       </div>
 
       {/* Active type filter badge */}
