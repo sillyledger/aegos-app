@@ -120,10 +120,8 @@ function calcAegosScore(
   return { score, label, breakdown };
 }
 
-function getScoreColor(label: string): { bg: string; border: string; text: string; bar: string } {
-  if (label === "High Confidence")     return { bg: "rgba(56,100,200,0.06)",  border: "rgba(56,100,200,0.18)",  text: "#3864C8", bar: "#3864C8" };
-  if (label === "Moderate Confidence") return { bg: "rgba(100,160,60,0.06)",  border: "rgba(100,160,60,0.18)",  text: "#4A8C1C", bar: "#4A8C1C" };
-  return                                      { bg: "rgba(26,24,20,0.03)",    border: "rgba(26,24,20,0.1)",     text: "#6B7280", bar: "#D1D5DB" };
+function getScoreColor(_label: string): { bg: string; border: string; text: string; bar: string } {
+  return { bg: "rgba(56,100,200,0.06)", border: "rgba(56,100,200,0.18)", text: "#3864C8", bar: "#3864C8" };
 }
 // ─────────────────────────────────────────────────────────────
 
@@ -509,16 +507,11 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
               {aegosResult.label}
             </div>
 
-            {/* Breakdown */}
+            {/* How calculated */}
             <div style={{ borderTop: `0.5px solid ${scoreColors.border}`, paddingTop: "10px" }}>
-              {aegosResult.breakdown.map((item) => (
-                <div key={item.signal} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
-                  <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.45)" }}>{item.signal}</span>
-                  <span style={{ fontSize: "11px", fontWeight: 600, color: item.points > 0 ? scoreColors.text : "#E06B5A" }}>
-                    {item.points > 0 ? `+${item.points}` : item.points}
-                  </span>
-                </div>
-              ))}
+              <span style={{ fontSize: "11px", color: "rgba(56,100,200,0.5)", cursor: "default", letterSpacing: "0.02em" }}>
+                How is this calculated?
+              </span>
             </div>
           </div>
         </div>
