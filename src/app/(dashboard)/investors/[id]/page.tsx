@@ -68,6 +68,16 @@ type RawDeal = {
   companies: unknown;
 };
 
+type FundRow = {
+  id: string;
+  fund_name: string;
+  series: string | null;
+  filed_at: string | null;
+  hq_city: string | null;
+  country: string | null;
+  source_ref: string | null;
+};
+
 function extractCompany(raw: unknown): CompanyRef | null {
   if (!raw) return null;
   if (Array.isArray(raw)) {
@@ -144,6 +154,14 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
     if (!b.announcement_date) return -1;
     return new Date(b.announcement_date).getTime() - new Date(a.announcement_date).getTime();
   });
+
+  const { data: fundsRaw } = await supabase
+    .from("funds")
+    .select("id, fund_name, series, filed_at, hq_city, country, source_ref")
+    .eq("investor_id", investor.id)
+    .order("filed_at", { ascending: false, nullsFirst: false });
+
+  const funds: FundRow[] = fundsRaw || [];
 
   const totalDeals = allDeals.length;
   const totalDeployed = allDeals.reduce((sum, d) => sum + (d.amount_usd || 0), 0);
@@ -305,13 +323,59 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
 
         <div style={divider} />
 
+        {/* 05 — FUNDS */}
+        <div>
+          <div style={sectionLabel}>05 — FUNDS</div>
+          {funds.length > 0 ? (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 80px", gap: "0 12px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
+                {["Fund", "Location", "Filed", "SEC"].map((col) => (
+                  <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#6B7280", fontWeight: 600 }}>{col}</span>
+                ))}
+              </div>
+              {funds.map((fund) => {
+                const location = [fund.hq_city, fund.country].filter(Boolean).join(", ") || "—";
+                const secUrl = fund.source_ref
+                  ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&filenum=${fund.source_ref}&type=D&dateb=&owner=include&count=10`
+                  : null;
+                return (
+                  <div key={fund.id} style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 80px", gap: "0 12px", padding: "13px 0", borderBottom: "0.5px solid rgba(26,24,20,0.07)", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: "13px", fontWeight: 500, color: "#1A1814" }}>{fund.fund_name}</div>
+                      {fund.series && (
+                        <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.38)", marginTop: "2px" }}>{fund.series}</div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.5)" }}>{location}</span>
+                    <span style={{ fontSize: "12px", color: "rgba(26,24,20,0.5)" }}>{formatDate(fund.filed_at)}</span>
+                    <span>
+                      {secUrl ? (
+                        <a href={secUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: "11px", color: "#3864C8", textDecoration: "none" }}>
+                          SEC →
+                        </a>
+                      ) : <span style={{ color: "rgba(26,24,20,0.2)", fontSize: "12px" }}>—</span>}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <div style={{ padding: "32px", border: "0.5px solid rgba(26,24,20,0.08)", borderRadius: "6px", textAlign: "center" }}>
+              <div style={{ fontSize: "13px", color: "rgba(26,24,20,0.3)", marginBottom: "4px" }}>No funds tracked yet</div>
+              <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.2)", letterSpacing: "0.04em" }}>Funds will appear here as SEC EDGAR filings are promoted</div>
+            </div>
+          )}
+        </div>
+
+        <div style={divider} />
+
         {/* 04 — DEAL HISTORY */}
         <div>
           <div style={sectionLabel}>04 — DEAL HISTORY</div>
 
           {allDeals.length > 0 ? (
             <>
-              {/* Summary strip */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "32px" }}>
                 {[
                   { label: "DEALS", value: totalDeals.toString() },
@@ -326,12 +390,10 @@ export default async function InvestorProfile({ params }: { params: Promise<{ id
                 ))}
               </div>
 
-              {/* Bar chart */}
               {chartYears.length > 0 && (
                 <DealChart years={chartYears} amounts={chartAmounts} investorName={investor.investor_name} />
               )}
 
-              {/* Deal table */}
               <div style={{ display: "grid", gridTemplateColumns: "2fr 90px 90px 110px 100px", gap: "0 12px", padding: "8px 0", borderBottom: "1.5px solid #E5E7EB" }}>
                 {["Company", "Stage", "Amount", "Date", "Role"].map((col) => (
                   <span key={col} style={{ fontSize: "10px", letterSpacing: "0.07em", textTransform: "uppercase" as const, color: "#6B7280", fontWeight: 600 }}>{col}</span>
