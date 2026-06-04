@@ -55,6 +55,78 @@ const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
 
 type CoInvestor = { investor_id: string; investors: { investor_name: string; slug: string | null } | null };
 
+// ── AEGOS SCORE ──────────────────────────────────────────────
+// Max 100. Realistic floor for enriched companies: 15 (base 1 + description 14).
+function calcAegosScore(
+  company: Record<string, unknown>,
+  hasFundingRounds: boolean,
+  recentArticles: { published_at: string | null; created_at: string }[]
+): { score: number; label: string; breakdown: { signal: string; points: number }[] } {
+  const breakdown: { signal: string; points: number }[] = [];
+  let score = 0;
+
+  // Base
+  score += 1;
+  breakdown.push({ signal: "Base", points: 1 });
+
+  // Data completeness signals
+  if (company.company_description) { score += 14; breakdown.push({ signal: "Company description", points: 14 }); }
+  if (company.founding_year)        { score += 10; breakdown.push({ signal: "Founding year", points: 10 }); }
+  if (company.employee_count)       { score += 10; breakdown.push({ signal: "Employee count", points: 10 }); }
+  if (company.website)              { score += 10; breakdown.push({ signal: "Website", points: 10 }); }
+  if (company.sector_primary)       { score += 10; breakdown.push({ signal: "Sector", points: 10 }); }
+  if (company.hq_city)              { score += 10; breakdown.push({ signal: "HQ city", points: 10 }); }
+
+  // Funding signal
+  if (hasFundingRounds) { score += 25; breakdown.push({ signal: "Has funding rounds", points: 25 }); }
+
+  // News signal — last 12 months, max 5 articles × 2pts = +10
+  const now = new Date();
+  const twelveMonthsAgo = new Date(now);
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+  const articlesInWindow = recentArticles.filter((a) => {
+    const d = new Date(a.published_at ?? a.created_at);
+    return d >= twelveMonthsAgo;
+  });
+
+  const newsPoints = Math.min(articlesInWindow.length, 5) * 2;
+  if (newsPoints > 0) {
+    score += newsPoints;
+    breakdown.push({ signal: `News articles (${articlesInWindow.length} in last 12mo)`, points: newsPoints });
+  }
+
+  // News decay — if most recent article is older than 12 months, -2 per month of silence
+  if (recentArticles.length > 0) {
+    const mostRecent = new Date(recentArticles[0].published_at ?? recentArticles[0].created_at);
+    if (mostRecent < twelveMonthsAgo) {
+      const monthsSilent = Math.floor((now.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24 * 30)) - 12;
+      if (monthsSilent > 0) {
+        const decay = Math.min(monthsSilent * 2, 10); // cap decay at -10
+        score -= decay;
+        breakdown.push({ signal: `News decay (${monthsSilent}mo silence)`, points: -decay });
+      }
+    }
+  }
+
+  // Floor at 1, ceiling at 100
+  score = Math.max(1, Math.min(100, score));
+
+  const label =
+    score >= 71 ? "High Confidence" :
+    score >= 41 ? "Moderate Confidence" :
+    "Limited Data";
+
+  return { score, label, breakdown };
+}
+
+function getScoreColor(label: string): { bg: string; border: string; text: string; bar: string } {
+  if (label === "High Confidence")     return { bg: "rgba(56,100,200,0.06)",  border: "rgba(56,100,200,0.18)",  text: "#3864C8", bar: "#3864C8" };
+  if (label === "Moderate Confidence") return { bg: "rgba(100,160,60,0.06)",  border: "rgba(100,160,60,0.18)",  text: "#4A8C1C", bar: "#4A8C1C" };
+  return                                      { bg: "rgba(26,24,20,0.03)",    border: "rgba(26,24,20,0.1)",     text: "#6B7280", bar: "#D1D5DB" };
+}
+// ─────────────────────────────────────────────────────────────
+
 export default async function CompanyProfile({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -78,7 +150,7 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
 
   const { data: relatedNews } = await supabase
     .from("news_articles")
-    .select("id, title, source, source_url, created_at, source_name")
+    .select("id, title, source, source_url, created_at, source_name, published_at")
     .ilike("title", `%${company.company_name}%`)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -116,6 +188,12 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
       }
     }
   }
+
+  // ── Calculate Aegos Score ──
+  const hasFundingRounds = (fundingRounds ?? []).length > 0;
+  const newsForScore = (relatedNews ?? []) as { published_at: string | null; created_at: string }[];
+  const aegosResult = calcAegosScore(company, hasFundingRounds, newsForScore);
+  const scoreColors = getScoreColor(aegosResult.label);
 
   const sectionLabel: React.CSSProperties = {
     fontSize: "11px",
@@ -407,9 +485,41 @@ export default async function CompanyProfile({ params }: { params: Promise<{ id:
         {/* Aegos Score */}
         <div>
           <div style={{ fontSize: "11px", letterSpacing: "0.07em", fontWeight: 500, color: "rgba(26,24,20,0.35)", marginBottom: "12px" }}>AEGOS SCORE</div>
-          <div style={{ background: "rgba(56,100,200,0.06)", border: "0.5px solid rgba(56,100,200,0.18)", borderRadius: "6px", padding: "14px 16px" }}>
-            <div style={{ fontSize: "22px", fontFamily: "var(--font-lora)", fontWeight: 400, color: "#3864C8", marginBottom: "4px" }}>—</div>
-            <div style={{ fontSize: "11px", color: "rgba(26,24,20,0.35)", letterSpacing: "0.04em" }}>Awaiting data enrichment</div>
+          <div style={{
+            background: scoreColors.bg,
+            border: `0.5px solid ${scoreColors.border}`,
+            borderRadius: "6px",
+            padding: "14px 16px",
+          }}>
+            {/* Score number + label */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "10px" }}>
+              <div style={{ fontSize: "32px", fontFamily: "var(--font-lora)", fontWeight: 400, color: scoreColors.text, lineHeight: 1 }}>
+                {aegosResult.score}
+              </div>
+              <div style={{ fontSize: "11px", color: scoreColors.text, fontWeight: 500, opacity: 0.8 }}>/100</div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ height: "3px", background: "rgba(26,24,20,0.08)", borderRadius: "2px", marginBottom: "10px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${aegosResult.score}%`, background: scoreColors.bar, borderRadius: "2px", transition: "width 0.3s ease" }} />
+            </div>
+
+            {/* Label */}
+            <div style={{ fontSize: "11px", color: scoreColors.text, fontWeight: 600, letterSpacing: "0.04em", marginBottom: "12px" }}>
+              {aegosResult.label}
+            </div>
+
+            {/* Breakdown */}
+            <div style={{ borderTop: `0.5px solid ${scoreColors.border}`, paddingTop: "10px" }}>
+              {aegosResult.breakdown.map((item) => (
+                <div key={item.signal} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                  <span style={{ fontSize: "11px", color: "rgba(26,24,20,0.45)" }}>{item.signal}</span>
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: item.points > 0 ? scoreColors.text : "#E06B5A" }}>
+                    {item.points > 0 ? `+${item.points}` : item.points}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
